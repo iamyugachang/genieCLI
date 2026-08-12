@@ -24,7 +24,8 @@ def _make_client():
     return client
 
 
-def _make_result(rows=100, wall_ms=80_000, samples=None):
+def _make_result(rows=100, wall_ms=80_000, samples=None,
+                 capture_status="complete", completeness="verified_complete"):
     metrics = RunMetrics(
         query_time_ms=wall_ms,
         cpu_time_ms=wall_ms,
@@ -40,6 +41,11 @@ def _make_result(rows=100, wall_ms=80_000, samples=None):
         rows=result_rows,
         columns=["a"],
         metrics=metrics,
+        # Default to complete capture provenance — the L3 correctness gate only
+        # authorizes semantic comparison for explicitly proven complete
+        # captures. Tests exercising the incomplete-rejection path override.
+        capture_status=capture_status,
+        completeness=completeness,
     )
 
 
@@ -339,8 +345,14 @@ def test_mcp_standard_loop_does_not_remeasure_rejected_duplicate_candidate():
     """A rejected candidate is fed back and an exact retry consumes no Trino run."""
     output = MagicMock()
     client = _make_client()
-    baseline = _make_result(rows=100, wall_ms=10_000)
-    candidate = _make_result(rows=100, wall_ms=5_000)
+    # Deliberately incomplete provenance: this test locks the
+    # incomplete-result rejection path + duplicate-candidate dedup.
+    baseline = _make_result(rows=100, wall_ms=10_000,
+                            capture_status="not_captured",
+                            completeness="not_captured")
+    candidate = _make_result(rows=100, wall_ms=5_000,
+                             capture_status="not_captured",
+                             completeness="not_captured")
     cand_sql = "SELECT a FROM t WHERE a > 0"
     provider = _llm_provider_with_replies([_wrap_sql(cand_sql), _wrap_sql(cand_sql)])
     explain = ExplainAnalyzeResult(raw_text="", available=False)

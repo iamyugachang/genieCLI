@@ -38,6 +38,7 @@ class QueryMetrics:
     processed_bytes: int = 0
     total_splits: int = 0
     completed_splits: int = 0
+    query_id: str = ""  # for post-run QueryInfo fetch; not part of metric comparison
 
     def to_json(self) -> dict:
         return {

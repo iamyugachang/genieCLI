@@ -119,6 +119,7 @@ def _execute_sql_sync(sql: str, capture_rows: bool = False, *,
         )
         stats = getattr(cur, "stats", {}) or {}
         metrics = _extract_metrics(stats)
+        metrics.query_id = getattr(cur, "query_id", "") or ""
         return captured.observed_row_count, metrics, captured.rows
     finally:
         conn.close()
@@ -164,6 +165,7 @@ def _execute_sql(
             )
             stats = getattr(cur, "stats", {}) or {}
             metrics = _extract_metrics(stats)
+            metrics.query_id = getattr(cur, "query_id", "") or ""
             result["value"] = (captured.observed_row_count, metrics, captured.rows)
         except BaseException as exc:
             error["exc"] = exc
@@ -390,18 +392,74 @@ def _baseline_wall_ms(metrics) -> float:
 
 
 def _normalize_row(row: tuple) -> tuple:
-    """Normalize a row for comparison (handle float precision, None, etc)."""
+    """Normalize a row for comparison (handle float precision, None, etc).
+
+    Floats normalize to 12 significant digits AND at most 6 decimal places:
+    parallel aggregation over doubles is order-nondeterministic in its last
+    ulps. The significant-digit cap absorbs that noise at large magnitudes
+    (e.g. 1e10-scale sums, where a fixed 6-decimal round demands ~17
+    significant digits — beyond double precision itself); the decimal-place
+    cap keeps the historical ~5e-7 absolute tolerance for small-magnitude
+    values (rates, ratios), where 12 significant digits alone would flag
+    run-to-run noise as semantic drift.
+    """
     result = []
     for val in row:
         if isinstance(val, float):
-            result.append(round(val, 6))
+            result.append(round(float(f"{val:.12g}"), 6))
         else:
             result.append(val)
     return tuple(result)
 
 
-def _results_equivalent(rows_a: list, rows_b: list) -> tuple[bool, str]:
-    """Check if two result sets are equivalent (same rows, same order).
+def _multiset_key(val) -> str:
+    """Canonical key for the order-insensitive (multiset) compare.
+
+    Values that compare equal under == must map to the same key — mirroring
+    the positional branch's tuple-== semantics: Decimal('1.5') vs
+    Decimal('1.50'), 1 vs 1.0, 0.0 vs -0.0 all count as the same value.
+    Numbers canonicalize through Fraction (exact, cross-type); everything
+    else falls back to repr, which keeps unhashable values (arrays/maps)
+    countable and preserves the 1 vs '1' type distinction.
+    """
+    from decimal import Decimal
+    from fractions import Fraction
+    if isinstance(val, (int, float, Decimal)):
+        # bool included deliberately: True == 1 under ==, so the positional
+        # branch equates them too.
+        try:
+            return str(Fraction(val))
+        except (ValueError, OverflowError):  # NaN / inf
+            return repr(val)
+    return repr(val)
+
+
+def _has_top_level_order_by(sql: str) -> bool:
+    """True when the statement's outermost query carries an ORDER BY.
+
+    Decides whether result comparison must be positional. Fail-closed: any
+    parse failure → True (strict positional compare — the conservative gate).
+    """
+    try:
+        import sqlglot
+        stmt = sqlglot.parse_one(sql, read="trino")
+        if stmt is None:
+            return True
+        return stmt.args.get("order") is not None
+    except Exception:
+        return True
+
+
+def _results_equivalent(rows_a: list, rows_b: list, *,
+                        ordered: bool = True) -> tuple[bool, str]:
+    """Check if two result sets are equivalent.
+
+    ordered=True → same rows in the same order (queries with a top-level
+    ORDER BY, where order is part of the semantics).
+    ordered=False → same multiset of rows. SQL without a top-level ORDER BY
+    has no guaranteed result order, so a positional compare would misreport
+    equivalent candidates as semantic drift whenever the cluster returns the
+    same groups in a different order.
 
     Returns (equivalent, reason).
     """
@@ -414,6 +472,23 @@ def _results_equivalent(rows_a: list, rows_b: list) -> tuple[bool, str]:
     # Compare column count
     if len(rows_a[0]) != len(rows_b[0]):
         return False, f"column count differs: {len(rows_a[0])} vs {len(rows_b[0])}"
+
+    if not ordered:
+        from collections import Counter
+        # _multiset_key canonicalizes ==-equal values to the same key (so this
+        # branch never rejects rows the positional branch would accept) while
+        # keeping unhashable values (arrays/maps) countable via repr.
+        ca = Counter(tuple(_multiset_key(v) for v in _normalize_row(r)) for r in rows_a)
+        cb = Counter(tuple(_multiset_key(v) for v in _normalize_row(r)) for r in rows_b)
+        if ca == cb:
+            return True, "exact match (order-insensitive)"
+        only_a = ca - cb
+        mismatches = sum(only_a.values())
+        sample = next(iter(only_a))
+        return False, (
+            f"{mismatches} row(s) differ (order-insensitive); "
+            f"e.g. baseline-only row: {sample}"
+        )
 
     # Normalize and compare row by row
     mismatches = 0
@@ -821,6 +896,14 @@ def _run_plan_cost_loop(
     )
     render_rule_gate_summary(output, rule_gate)
 
+    # Condensed skeleton of the already-fetched baseline plan (no extra
+    # EXPLAIN round-trip). Fail-open ("" → not injected).
+    from genie.skills.mcp_trino.research import _format_plan_skeleton_block
+    from genie.skills.trino_query.plan_render import render_plan_skeleton
+    skeleton_block = _format_plan_skeleton_block(
+        render_plan_skeleton(baseline_plan), label="Baseline plan skeleton"
+    )
+
     # Session setup — same prompt structure as the legacy loop
     # (direct path: rule_gate_block only, no directions_block)
     skill_prompt = build_prompt(True, model)
@@ -836,6 +919,7 @@ def _run_plan_cost_loop(
         f"projection pruning, APPROX_DISTINCT over COUNT(DISTINCT), COALESCE instead of NVL\n"
         f"- Treat CTE step materialization as advisory only; keep this loop read-only\n\n"
         f"{(rule_gate_block + chr(10) + chr(10)) if rule_gate_block else ''}"
+        f"{(skeleton_block + chr(10) + chr(10)) if skeleton_block else ''}"
         f"{skill_prompt}"
     )
 
@@ -846,11 +930,15 @@ def _run_plan_cost_loop(
         timeout_ms=candidate_timeout_ms,
     )
     metric_fn = lambda m: m["median"]
+    # Without a top-level ORDER BY, result order is not part of the query's
+    # semantics — compare row multisets, not positions.
+    _rows_ordered = _has_top_level_order_by(original_sql)
     # Do not let a plan-cost candidate become a winner from partial rows.
     def row_equiv_fn(measured):
         if not _correctness_authorized(baseline, measured):
             return False, _incomplete_rejection_reason(baseline, measured)
-        return _results_equivalent(baseline_data, measured["rows"])
+        return _results_equivalent(baseline_data, measured["rows"],
+                                   ordered=_rows_ordered)
     # Single-emission empty-branch message; core emits this via empty_message param.
     _DIRECT_EMPTY_MSG = "  [verify] No candidate beats baseline plan cost — emitting no_verifiable_improvement"
 
@@ -902,7 +990,8 @@ def _run_plan_cost_loop(
                     _dpcl_seed_equiv = (
                         _dpcl_seed_authorized
                         and _dpcl_seed_meas["row_count"] == baseline_rows
-                        and _results_equivalent(baseline_data, _dpcl_seed_meas["rows"])[0]
+                        and _results_equivalent(baseline_data, _dpcl_seed_meas["rows"],
+                                                ordered=_rows_ordered)[0]
                     )
                     if _dpcl_seed_equiv and _dpcl_seed_meas["median"] < baseline_metric:
                         _dpcl_seed_sql = _dpcl_recomposed
@@ -1106,6 +1195,27 @@ def _fetch_table_metadata_direct(sql: str) -> list:
 # Core iteration loop (no RunManager / file_patch / git dependency)
 # ---------------------------------------------------------------------------
 
+def _render_direct_plan_skeleton(
+    explain_runner: Optional[Callable[[str], Optional[str]]], sql: str
+) -> str:
+    """Condensed EXPLAIN (FORMAT JSON) skeleton for the --direct path.
+
+    Planner-only round-trip through the injected explain_runner. Fail-open:
+    returns "" (no runner / EXPLAIN failure / unusable plan) so callers gate
+    prompt injection on truthiness.
+    """
+    from genie.skills.mcp_trino.preflight import plan_cost as _plan_cost
+    from genie.skills.trino_query.plan_render import render_plan_skeleton
+
+    if explain_runner is None:
+        return ""
+    try:
+        _, _, plan = _plan_cost(sql, explain_runner)
+        return render_plan_skeleton(plan)
+    except Exception:
+        return ""
+
+
 def _assemble_direct_directions(
     original_sql: str,
     static_report,
@@ -1113,6 +1223,7 @@ def _assemble_direct_directions(
     *,
     peak_memory_bytes: Optional[int] = None,
     table_metadata=None,
+    explain_cost=None,
 ):
     """Assemble ranked optimization directions for the --direct path.
 
@@ -1148,8 +1259,10 @@ def _assemble_direct_directions(
         except Exception:
             pre_table_metadata = []
 
-    explain_cost = None
-    if explain_runner is not None:
+    # explain_cost may be injected by callers that already ran the EXPLAIN
+    # round-trip for this SQL (per-iteration evidence cache) — one planner
+    # call instead of one per consumer.
+    if explain_cost is None and explain_runner is not None:
         try:
             explain_cost = _plan_cost(original_sql, explain_runner)
         except Exception:
@@ -1385,6 +1498,54 @@ def _run_optimization_loop(
     # baseline/_baseline are available (we only reach here when _baseline is not None).
     baseline = _baseline
 
+    # Runtime stage hotspots must be fetched promptly after the run — the
+    # coordinator evicts finished queries from its in-memory history
+    # (query.min-expire-age / query.max-history). Grab the baseline's NOW,
+    # before the EXPLAIN round-trips and seed-decompose LLM calls below can
+    # let the query_id expire.
+    from genie.skills.trino_query.iteration_pipeline import stepwise_enabled as _stepwise_enabled
+    from genie.skills.trino_query.query_info import stage_hotspot_block
+    _stepwise = _stepwise_enabled() and provider is not None
+    _baseline_query_id = getattr(baseline["metrics"], "query_id", "") or ""
+    _baseline_hotspot_block = ""
+    if _stepwise and _baseline_query_id:
+        _baseline_hotspot_block = stage_hotspot_block(_baseline_query_id)
+
+    # One EXPLAIN (FORMAT JSON) round-trip per distinct SQL, shared by every
+    # evidence consumer (directions assembly, plan skeleton, repeated-subtree
+    # note) — each previously ran its own EXPLAIN for the same SQL, up to
+    # three planner round-trips per improving iteration.
+    from genie.skills.mcp_trino.preflight import plan_cost as _plan_cost_for_dup
+    from genie.skills.trino_query.plan_render import (
+        render_plan_skeleton as _render_skeleton_from_plan,
+    )
+    _ev_cost_cache: dict[str, object] = {}
+
+    def _evidence_cost(sql: str):
+        """Cached plan_cost 3-tuple for sql; None when EXPLAIN unavailable."""
+        if sql not in _ev_cost_cache:
+            cost = None
+            if explain_runner is not None:
+                try:
+                    cost = _plan_cost_for_dup(sql, explain_runner)
+                except Exception:
+                    cost = None
+            _ev_cost_cache[sql] = cost
+        return _ev_cost_cache[sql]
+
+    def _evidence_plan(sql: str):
+        cost = _evidence_cost(sql)
+        return cost[2] if cost else None
+
+    def _evidence_skeleton(sql: str) -> str:
+        plan = _evidence_plan(sql)
+        if plan is None:
+            return ""
+        try:
+            return _render_skeleton_from_plan(plan)
+        except Exception:
+            return ""
+
     # ── Pre-execution diagnosis (v29 T2 — dual-path parity with MCP path) ──
     # The --direct path has no table-metadata fetcher, so diagnosis is driven by
     # static findings + plan-cost estimates + the baseline's actual peak memory.
@@ -1398,6 +1559,7 @@ def _run_optimization_loop(
     directions, _ = _assemble_direct_directions(
         original_sql, static_report, explain_runner,
         peak_memory_bytes=getattr(baseline["metrics"], "peak_memory_bytes", 0) or None,
+        explain_cost=_evidence_cost(original_sql),
     )
     rule_gate = build_rule_gate_summary(static_report, directions)
     rule_gate_block = format_rule_gate_for_prompt(rule_gate)
@@ -1405,6 +1567,17 @@ def _run_optimization_loop(
     render_rule_gate_summary(output, rule_gate)
     if directions:
         output.progress(f"  Pre-execution diagnosis: {len(directions)} ranked direction(s) → prompt")
+
+    # Condensed plan skeleton (dual-path parity with the MCP standard loop):
+    # directions carry only rule-recognized patterns; the skeleton exposes the
+    # full optimizer-chosen tree. Fail-open ("" → not injected).
+    from genie.skills.mcp_trino.research import _format_plan_skeleton_block
+    baseline_skeleton = _evidence_skeleton(original_sql)
+    skeleton_block = _format_plan_skeleton_block(
+        baseline_skeleton, label="Baseline plan skeleton"
+    )
+    if skeleton_block:
+        output.progress(f"  Plan skeleton: {len(baseline_skeleton.splitlines())} line(s) → prompt")
 
     # ── Session setup ──
     skill_prompt = build_prompt(True, model)
@@ -1421,6 +1594,7 @@ def _run_optimization_loop(
         f"- Treat CTE step materialization as advisory only; keep this loop read-only\n\n"
         f"{(rule_gate_block + chr(10) + chr(10)) if rule_gate_block else ''}"
         f"{(directions_block + chr(10) + chr(10)) if directions_block else ''}"
+        f"{(skeleton_block + chr(10) + chr(10)) if skeleton_block else ''}"
         f"{skill_prompt}"
     )
     session = new_session(sys_prompt)
@@ -1494,6 +1668,48 @@ def _run_optimization_loop(
     # stable best_sql is never re-diagnosed.
     rediag_cache: dict[str, str] = {original_sql: directions_block}
 
+    # ── Stepwise Step A/B/C evidence bootstrap ──
+    # Runtime hotspots (QueryInfo REST), table landscape (SHOW STATS) and the
+    # repeated-subtree note feed the diagnose step. All fail-open: an empty
+    # block is simply omitted from the Step A prompt.
+    from genie.skills.trino_query.iteration_pipeline import (
+        IterationEvidence,
+        record_fields,
+        run_stepwise_prelude,
+    )
+    from genie.skills.trino_query.plan_render import repeated_subtree_note
+    from genie.skills.trino_query.table_landscape import table_landscape_block
+
+    # Without a top-level ORDER BY, result order is not part of the query's
+    # semantics — the equivalence gate compares row multisets, not positions.
+    _rows_ordered = _has_top_level_order_by(original_sql)
+
+    landscape_block = ""
+    best_hotspot_block = ""
+    _ev_skeleton_cache: dict[str, str] = {original_sql: skeleton_block}
+    _ev_dup_cache: dict[str, str] = {}
+    if _stepwise:
+        landscape_block = table_landscape_block(original_sql, _execute_direct_as_dicts)
+        if landscape_block:
+            output.progress("  Table landscape: SHOW STATS collected → Step A")
+        try:
+            _dup_plan = _evidence_plan(original_sql)
+            _ev_dup_cache[original_sql] = (
+                repeated_subtree_note(_dup_plan) if _dup_plan is not None else "")
+        except Exception:
+            _ev_dup_cache[original_sql] = ""
+        # The baseline's hotspot block was fetched promptly after its run
+        # (before the seed phase); reuse it when the seed winner IS the
+        # baseline, otherwise fetch for the winner — whose own run just
+        # finished, so its query_id is still fresh in coordinator history.
+        _winner_query_id = getattr(best_metrics_obj, "query_id", "") or ""
+        if _winner_query_id and _winner_query_id != _baseline_query_id:
+            best_hotspot_block = stage_hotspot_block(_winner_query_id)
+        else:
+            best_hotspot_block = _baseline_hotspot_block
+        if best_hotspot_block:
+            output.progress("  Runtime stage hotspots (QueryInfo) collected → Step A")
+
     # ── Iteration loop ──
     for iteration in range(1, max_iterations + 1):
         output.print("")
@@ -1524,25 +1740,85 @@ def _run_optimization_loop(
                 _rediag_dirs, _ = _assemble_direct_directions(
                     best_sql, static_analyze(best_sql), explain_runner,
                     peak_memory_bytes=None,
+                    explain_cost=_evidence_cost(best_sql),
                 )
                 fresh_block = format_directions_for_prompt(_rediag_dirs)
             except Exception:
                 fresh_block = ""
+            # Refresh the plan skeleton alongside directions — the tree in the
+            # system prompt describes original_sql and goes stale the same way.
+            # Cached per SQL; the lean-history trim bounds accumulation.
+            _fresh_skeleton = _format_plan_skeleton_block(
+                _evidence_skeleton(best_sql),
+                label="Current plan skeleton",
+            )
+            if _fresh_skeleton:
+                fresh_block = (
+                    f"{fresh_block}\n\n{_fresh_skeleton}" if fresh_block
+                    else _fresh_skeleton
+                )
             rediag_cache[best_sql] = fresh_block
+            # The stepwise evidence cache wants the same formatted block —
+            # share it so the stepwise branch below never re-renders (or
+            # re-EXPLAINs) for this SQL.
+            _ev_skeleton_cache.setdefault(best_sql, _fresh_skeleton)
         diag_line = f"{fresh_block}\n\n" if (fresh_block and best_sql != original_sql) else ""
 
-        context = (
-            f"[Trino Query Optimization — Iteration {iteration}]\n"
-            f"Target metric: {metric_key} (lower is better)\n"
-            f"Baseline: {baseline_metric}\n"
-            f"Current best: {best_metric}\n"
-            f"Last iteration: {last_str}\n\n"
-            f"{static_block}"
-            f"Current SQL:\n```sql\n{best_sql}\n```\n\n"
-            f"{diag_line}"
-            f"Return the COMPLETE optimized SQL in a ```sql block. ONE change only. "
-            f"Do NOT include a trailing semicolon."
-        )
+        step_fields: dict = {}
+        step_hypothesis = ""
+        if _stepwise:
+            # Refresh per-best evidence (planner round-trips only; cached by SQL).
+            _ev_skeleton = _ev_skeleton_cache.get(best_sql)
+            if _ev_skeleton is None:
+                _ev_skeleton = _format_plan_skeleton_block(
+                    _evidence_skeleton(best_sql),
+                    label="Current plan skeleton",
+                )
+                _ev_skeleton_cache[best_sql] = _ev_skeleton
+            _ev_dup = _ev_dup_cache.get(best_sql)
+            if _ev_dup is None:
+                try:
+                    _p = _evidence_plan(best_sql)
+                    _ev_dup = repeated_subtree_note(_p) if _p is not None else ""
+                except Exception:
+                    _ev_dup = ""
+                _ev_dup_cache[best_sql] = _ev_dup
+
+            _prelude = run_stepwise_prelude(
+                provider, model, reasoning,
+                IterationEvidence(
+                    metric_key=metric_key,
+                    baseline_metric=baseline_metric,
+                    best_metric=best_metric,
+                    last_result_line=last_str if history else "",
+                    iteration=iteration,
+                    max_iterations=max_iterations,
+                    best_sql=best_sql,
+                    hotspot_block=best_hotspot_block,
+                    landscape_block=landscape_block,
+                    skeleton_block=_ev_skeleton,
+                    dup_subtree_note=_ev_dup,
+                    static_block=static_block.strip(),
+                    directions_block=(diag_line.strip() or directions_block),
+                ),
+                output=output,
+            )
+            step_fields = record_fields(_prelude)
+            step_hypothesis = _prelude.hypothesis
+            context = _prelude.rewrite_user_msg
+        else:
+            context = (
+                f"[Trino Query Optimization — Iteration {iteration}]\n"
+                f"Target metric: {metric_key} (lower is better)\n"
+                f"Baseline: {baseline_metric}\n"
+                f"Current best: {best_metric}\n"
+                f"Last iteration: {last_str}\n\n"
+                f"{static_block}"
+                f"Current SQL:\n```sql\n{best_sql}\n```\n\n"
+                f"{diag_line}"
+                f"Return the COMPLETE optimized SQL in a ```sql block. ONE change only. "
+                f"Do NOT include a trailing semicolon."
+            )
 
         # Keep history lean: only system + last 4 messages (2 user/assistant pairs)
         # to avoid context bloat with local models
@@ -1580,12 +1856,14 @@ def _run_optimization_loop(
                     "iteration": iteration, "status": "no_sql",
                     "metric": best_metric, "delta": 0.0, "hypothesis": "no SQL extracted",
                     "base_sql": iter_base_sql, "candidate_sql": None,
+                    **step_fields,
                 })
                 continue
 
-        # Extract hypothesis from AI reply (skip code fences, get first meaningful line)
-        hypothesis = "?"
-        if reply:
+        # Hypothesis: Step B's explicit HYPOTHESIS line when the stepwise
+        # prelude produced one; else first meaningful line of the reply.
+        hypothesis = step_hypothesis or "?"
+        if hypothesis == "?" and reply:
             for line in reply.split("\n"):
                 line = line.strip()
                 if line and not line.startswith("```") and not line.startswith("|"):
@@ -1602,6 +1880,7 @@ def _run_optimization_loop(
                 "iteration": iteration, "status": "lint_failed",
                 "metric": best_metric, "delta": 0.0, "hypothesis": hypothesis,
                 "base_sql": iter_base_sql, "candidate_sql": candidate_sql,
+                **step_fields,
             })
             continue
 
@@ -1622,6 +1901,7 @@ def _run_optimization_loop(
                 "iteration": iteration, "status": "timeout_worse",
                 "metric": best_metric, "delta": 0.0, "hypothesis": hypothesis,
                 "base_sql": iter_base_sql, "candidate_sql": candidate_sql,
+                **step_fields,
             })
             continue
         except Exception as e:
@@ -1631,6 +1911,7 @@ def _run_optimization_loop(
                 "iteration": iteration, "status": "exec_failed",
                 "metric": best_metric, "delta": 0.0, "hypothesis": hypothesis,
                 "base_sql": iter_base_sql, "candidate_sql": candidate_sql,
+                **step_fields,
             })
             continue
 
@@ -1649,9 +1930,11 @@ def _run_optimization_loop(
                     metric=candidate_metric, delta=delta,
                 ),
                 "hypothesis": hypothesis,
+                **step_fields,
             })
             continue
-        equiv, equiv_reason = _results_equivalent(baseline_data, candidate_data)
+        equiv, equiv_reason = _results_equivalent(baseline_data, candidate_data,
+                                                  ordered=_rows_ordered)
         if not equiv:
             output.progress(
                 f"  [REVERT] Result mismatch: {equiv_reason} "
@@ -1667,6 +1950,7 @@ def _run_optimization_loop(
                 "iteration": iteration, "status": "semantic_drift",
                 "metric": candidate_metric, "delta": delta, "hypothesis": hypothesis,
                 "base_sql": iter_base_sql, "candidate_sql": candidate_sql,
+                **step_fields,
             })
             continue
 
@@ -1678,6 +1962,13 @@ def _run_optimization_loop(
             best_metrics_obj = candidate["metrics"]  # v32 T2
             status = "KEPT"
             status_icon = "+"
+            if _stepwise:
+                # New best → refresh runtime hotspots from ITS median run,
+                # promptly (coordinator history eviction). An unreachable
+                # API yields "" — Step A then omits the block rather than
+                # citing stats from a previous best.
+                best_hotspot_block = stage_hotspot_block(
+                    getattr(candidate["metrics"], "query_id", "") or "")
         else:
             status = "REVERTED"
             status_icon = "-"
@@ -1709,6 +2000,7 @@ def _run_optimization_loop(
             "hypothesis": hypothesis,
             "base_sql": iter_base_sql,
             "candidate_sql": candidate_sql,
+            **step_fields,
         })
 
         # Early exit: 3 consecutive non-improvements → plateau
@@ -1897,6 +2189,14 @@ def _generate_report(result: dict, metric_key: str, model: str, verify_runs: int
         lines.append("")
         lines.append(f"**Hypothesis:** {h.get('hypothesis', h.get('rejection_reason', 'n/a'))}")
         lines.append("")
+        # Stepwise pipeline provenance (present when GENIE_STEPWISE_ITERATION
+        # ran): what the model diagnosed and which named strategy it chose.
+        if h.get("diagnosis"):
+            lines.append(f"**Step A diagnosis:**\n```\n{h['diagnosis']}\n```")
+            lines.append("")
+        if h.get("strategy"):
+            lines.append(f"**Step B strategy:**\n```\n{h['strategy']}\n```")
+            lines.append("")
         metric, delta = _format_history_measurement(h)
         lines.append(
             f"**Metric:** {metric} (delta {delta}) — "

@@ -1,0 +1,294 @@
+{
+  "0" : {
+    "id" : "19",
+    "name" : "Output",
+    "descriptor" : {
+      "columnNames" : "[run_id, n]"
+    },
+    "outputs" : [ {
+      "type" : "varchar",
+      "name" : "run_id"
+    }, {
+      "type" : "bigint",
+      "name" : "count"
+    } ],
+    "details" : [ "n := count" ],
+    "estimates" : [ {
+      "outputRowCount" : "NaN",
+      "outputSizeInBytes" : "NaN",
+      "cpuCost" : 0.0,
+      "memoryCost" : 0.0,
+      "networkCost" : 0.0
+    } ],
+    "children" : [ {
+      "id" : "487",
+      "name" : "RemoteMerge",
+      "descriptor" : {
+        "sourceFragmentIds" : "[1]"
+      },
+      "outputs" : [ {
+        "type" : "varchar",
+        "name" : "run_id"
+      }, {
+        "type" : "bigint",
+        "name" : "count"
+      } ],
+      "details" : [ ],
+      "estimates" : [ ],
+      "children" : [ ]
+    } ]
+  },
+  "1" : {
+    "id" : "598",
+    "name" : "LocalMerge",
+    "descriptor" : {
+      "orderBy" : "[count DESC NULLS LAST]"
+    },
+    "outputs" : [ {
+      "type" : "varchar",
+      "name" : "run_id"
+    }, {
+      "type" : "bigint",
+      "name" : "count"
+    } ],
+    "details" : [ ],
+    "estimates" : [ {
+      "outputRowCount" : "NaN",
+      "outputSizeInBytes" : "NaN",
+      "cpuCost" : 0.0,
+      "memoryCost" : 0.0,
+      "networkCost" : 0.0
+    } ],
+    "children" : [ {
+      "id" : "488",
+      "name" : "PartialSort",
+      "descriptor" : {
+        "orderBy" : "[count DESC NULLS LAST]"
+      },
+      "outputs" : [ {
+        "type" : "varchar",
+        "name" : "run_id"
+      }, {
+        "type" : "bigint",
+        "name" : "count"
+      } ],
+      "details" : [ ],
+      "estimates" : [ ],
+      "children" : [ {
+        "id" : "486",
+        "name" : "RemoteSource",
+        "descriptor" : {
+          "sourceFragmentIds" : "[2]"
+        },
+        "outputs" : [ {
+          "type" : "varchar",
+          "name" : "run_id"
+        }, {
+          "type" : "bigint",
+          "name" : "count"
+        } ],
+        "details" : [ ],
+        "estimates" : [ ],
+        "children" : [ ]
+      } ]
+    } ]
+  },
+  "2" : {
+    "id" : "11",
+    "name" : "Aggregate",
+    "descriptor" : {
+      "type" : "FINAL",
+      "keys" : "[run_id]",
+      "hash" : "[]"
+    },
+    "outputs" : [ {
+      "type" : "varchar",
+      "name" : "run_id"
+    }, {
+      "type" : "bigint",
+      "name" : "count"
+    } ],
+    "details" : [ "count := count(count_4)" ],
+    "estimates" : [ {
+      "outputRowCount" : "NaN",
+      "outputSizeInBytes" : "NaN",
+      "cpuCost" : "NaN",
+      "memoryCost" : "NaN",
+      "networkCost" : 0.0
+    } ],
+    "children" : [ {
+      "id" : "635",
+      "name" : "LocalExchange",
+      "descriptor" : {
+        "partitioning" : "HASH",
+        "isReplicateNullsAndAny" : "",
+        "hashColumn" : "[]",
+        "arguments" : "[run_id::varchar]"
+      },
+      "outputs" : [ {
+        "type" : "varchar",
+        "name" : "run_id"
+      }, {
+        "type" : "bigint",
+        "name" : "count_4"
+      } ],
+      "details" : [ ],
+      "estimates" : [ {
+        "outputRowCount" : "NaN",
+        "outputSizeInBytes" : "NaN",
+        "cpuCost" : "NaN",
+        "memoryCost" : 0.0,
+        "networkCost" : 0.0
+      } ],
+      "children" : [ {
+        "id" : "641",
+        "name" : "RemoteSource",
+        "descriptor" : {
+          "sourceFragmentIds" : "[3]"
+        },
+        "outputs" : [ {
+          "type" : "varchar",
+          "name" : "run_id"
+        }, {
+          "type" : "bigint",
+          "name" : "count_4"
+        } ],
+        "details" : [ ],
+        "estimates" : [ ],
+        "children" : [ ]
+      } ]
+    } ]
+  },
+  "3" : {
+    "id" : "639",
+    "name" : "Aggregate",
+    "descriptor" : {
+      "type" : "PARTIAL",
+      "keys" : "[run_id]",
+      "hash" : "[]"
+    },
+    "outputs" : [ {
+      "type" : "varchar",
+      "name" : "run_id"
+    }, {
+      "type" : "bigint",
+      "name" : "count_4"
+    } ],
+    "details" : [ "count_4 := count(*)" ],
+    "estimates" : [ ],
+    "children" : [ {
+      "id" : "6",
+      "name" : "InnerJoin",
+      "descriptor" : {
+        "criteria" : "(id = id_0)",
+        "hash" : "[]",
+        "distribution" : "REPLICATED"
+      },
+      "outputs" : [ {
+        "type" : "varchar",
+        "name" : "run_id"
+      } ],
+      "details" : [ "Distribution: REPLICATED", "dynamicFilterAssignments = {id_0 -> #df_535}" ],
+      "estimates" : [ {
+        "outputRowCount" : "NaN",
+        "outputSizeInBytes" : "NaN",
+        "cpuCost" : "NaN",
+        "memoryCost" : 8108.108108108107,
+        "networkCost" : 0.0
+      } ],
+      "children" : [ {
+        "id" : "536",
+        "name" : "ScanFilter",
+        "descriptor" : {
+          "table" : "iceberg:test_schema.t_g0s_001$data@2509850586355102217",
+          "filterPredicate" : "(id > bigint '100')",
+          "dynamicFilters" : "{id = #df_535}"
+        },
+        "outputs" : [ {
+          "type" : "bigint",
+          "name" : "id"
+        }, {
+          "type" : "varchar",
+          "name" : "run_id"
+        } ],
+        "details" : [ "id := 1:id:bigint", "run_id := 2:run_id:varchar" ],
+        "estimates" : [ {
+          "outputRowCount" : 938.0,
+          "outputSizeInBytes" : 16088.0,
+          "cpuCost" : 16088.0,
+          "memoryCost" : 0.0,
+          "networkCost" : 0.0
+        }, {
+          "outputRowCount" : 899.9594450373532,
+          "outputSizeInBytes" : 15435.551760939168,
+          "cpuCost" : 16088.0,
+          "memoryCost" : 0.0,
+          "networkCost" : 0.0
+        } ],
+        "children" : [ ]
+      }, {
+        "id" : "596",
+        "name" : "LocalExchange",
+        "descriptor" : {
+          "partitioning" : "SINGLE",
+          "isReplicateNullsAndAny" : "",
+          "hashColumn" : "[]",
+          "arguments" : "[]"
+        },
+        "outputs" : [ {
+          "type" : "bigint",
+          "name" : "id_0"
+        } ],
+        "details" : [ ],
+        "estimates" : [ {
+          "outputRowCount" : 900.9009009009009,
+          "outputSizeInBytes" : 8108.108108108107,
+          "cpuCost" : 0.0,
+          "memoryCost" : 0.0,
+          "networkCost" : 0.0
+        } ],
+        "children" : [ {
+          "id" : "484",
+          "name" : "RemoteSource",
+          "descriptor" : {
+            "sourceFragmentIds" : "[4]"
+          },
+          "outputs" : [ {
+            "type" : "bigint",
+            "name" : "id_0"
+          } ],
+          "details" : [ ],
+          "estimates" : [ ],
+          "children" : [ ]
+        } ]
+      } ]
+    } ]
+  },
+  "4" : {
+    "id" : "221",
+    "name" : "ScanFilter",
+    "descriptor" : {
+      "table" : "iceberg:test_schema.t_g0t_001$data@5659770742287726241",
+      "filterPredicate" : "(id_0 > bigint '100')"
+    },
+    "outputs" : [ {
+      "type" : "bigint",
+      "name" : "id_0"
+    } ],
+    "details" : [ "id_0 := 1:id:bigint" ],
+    "estimates" : [ {
+      "outputRowCount" : 1000.0,
+      "outputSizeInBytes" : 9000.0,
+      "cpuCost" : 9000.0,
+      "memoryCost" : 0.0,
+      "networkCost" : 0.0
+    }, {
+      "outputRowCount" : 900.9009009009009,
+      "outputSizeInBytes" : 8108.108108108107,
+      "cpuCost" : 9000.0,
+      "memoryCost" : 0.0,
+      "networkCost" : 0.0
+    } ],
+    "children" : [ ]
+  }
+}

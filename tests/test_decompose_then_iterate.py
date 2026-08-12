@@ -842,7 +842,8 @@ class TestDirectFragmentRewriteEnvParity:
         # (the _dir_produce_fn closure), which will call the mocked
         # _produce_decompose_candidate, letting us capture the env-threaded kwargs.
         def _mock_seed_select(original_sql, baseline_measure, *, produce_fn,
-                              measure_fn, flag_enabled, output=None, trace=None):
+                              measure_fn, flag_enabled, output=None, trace=None,
+                              rejection_history=None, **_kwargs):
             if flag_enabled and produce_fn is not None:
                 produce_fn(original_sql)
             from genie.skills.mcp_trino.research import MeasureResult

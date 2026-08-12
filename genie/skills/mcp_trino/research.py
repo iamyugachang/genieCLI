@@ -888,11 +888,80 @@ def _build_mcp_explain_runner(client: McpClient):
     return _runner
 
 
+def _render_mcp_plan_skeleton(client: McpClient, sql: str) -> str:
+    """Condensed EXPLAIN (FORMAT JSON) skeleton of `sql` for prompt injection.
+
+    Planner-only round-trip (no execution). Best-effort and fail-open: returns
+    "" when the plan is unavailable so callers can gate injection on
+    truthiness — same convention as ``format_directions_for_prompt``.
+    """
+    from genie.skills.mcp_trino.preflight import plan_cost
+    from genie.skills.trino_query.plan_render import render_plan_skeleton
+
+    try:
+        _, _, plan = plan_cost(sql, _build_mcp_explain_runner(client))
+        return render_plan_skeleton(plan)
+    except Exception:
+        return ""
+
+
+def _format_plan_skeleton_block(skeleton: str, *, label: str) -> str:
+    """Wrap a non-empty skeleton in its prompt block; "" passes through."""
+    if not skeleton:
+        return ""
+    return (
+        f"{label} (condensed EXPLAIN — operator tree, join distribution, "
+        f"per-node estimates; volatile fields dropped):\n"
+        f"```text\n{skeleton}\n```"
+    )
+
+
+def _format_hotspot_stages(
+    explain: "ExplainAnalyzeResult | None", *, limit: int = 3
+) -> str:
+    """Render the baseline's top-CPU EXPLAIN ANALYZE stages as a prompt block.
+
+    Runtime ground truth for targeting rewrites — estimates can mislead when
+    statistics are missing; measured stage CPU cannot. Returns "" when stage
+    data is unavailable or carries no usable CPU numbers (truthiness gating).
+    """
+    if explain is None or not explain.available or not explain.stages:
+        return ""
+    ranked = sorted(
+        (s for s in explain.stages if isinstance(s, dict)),
+        key=lambda s: float(s.get("cpu_ms", 0) or 0),
+        reverse=True,
+    )[:limit]
+    if not ranked or all(float(s.get("cpu_ms", 0) or 0) <= 0 for s in ranked):
+        return ""
+
+    total_cpu = float(explain.total_cpu_ms or 0)
+    lines = [
+        f"Baseline EXPLAIN ANALYZE hotspots (top {len(ranked)} stage(s) by "
+        f"measured CPU — target rewrites at these):"
+    ]
+    for s in ranked:
+        cpu = float(s.get("cpu_ms", 0) or 0)
+        pct = f" ({cpu / total_cpu * 100:.0f}% of total)" if total_cpu > 0 else ""
+        bits = [f"cpu={cpu:.0f}ms{pct}"]
+        if s.get("wall_ms") is not None:
+            bits.append(f"wall={float(s['wall_ms']):.0f}ms")
+        if s.get("input_rows") is not None:
+            bits.append(f"input={s['input_rows']:,} rows")
+        if s.get("output_rows") is not None:
+            bits.append(f"output={s['output_rows']:,} rows")
+        if s.get("memory_bytes"):
+            bits.append(f"peak_mem={s['memory_bytes'] / (1024 ** 2):.1f}MB")
+        lines.append(f"- Stage {s.get('id', '?')}: " + ", ".join(bits))
+    return "\n".join(lines)
+
+
 def _assemble_mcp_directions(
     client, sql, static_report, *,
     peak_memory_bytes=None,
     table_metadata=None,
     peak_memory_limit_bytes=None,   # NEW — per-node limit in bytes (None → 1 GiB fallback)
+    explain_cost=None,              # injectable pre-fetched plan_cost 3-tuple (shared EXPLAIN)
 ):
     """Gather diagnostics → ranked directions at zero query-execution cost.
 
@@ -918,11 +987,13 @@ def _assemble_mcp_directions(
             except Exception:
                 pre_table_metadata = []
 
-    explain_cost = None
-    try:
-        explain_cost = plan_cost(sql, _build_mcp_explain_runner(client))
-    except Exception:
-        explain_cost = None
+    # explain_cost may be injected by callers that already ran the EXPLAIN
+    # round-trip for this SQL — one planner call instead of one per consumer.
+    if explain_cost is None:
+        try:
+            explain_cost = plan_cost(sql, _build_mcp_explain_runner(client))
+        except Exception:
+            explain_cost = None
 
     directions = pre_execution_diagnosis(
         sql,
@@ -1592,6 +1663,14 @@ def _run_mcp_plan_cost_loop(
         )
         render_rule_gate_summary(output, rule_gate)
 
+    # Condensed skeleton of the already-fetched baseline plan (no extra
+    # EXPLAIN round-trip): full optimizer-chosen tree beyond what the ranked
+    # directions capture. Fail-open ("" → not injected).
+    from genie.skills.trino_query.plan_render import render_plan_skeleton
+    skeleton_block = _format_plan_skeleton_block(
+        render_plan_skeleton(baseline_plan), label="Baseline plan skeleton"
+    )
+
     # D12: build_prompt handled here before sys_prompt; core is opaque to it.
     skill_prompt = build_prompt(True, model) if build_prompt else ""
     sys_prompt = (
@@ -1607,6 +1686,7 @@ def _run_mcp_plan_cost_loop(
         f"- Treat CTE step materialization as advisory only; keep this loop read-only\n\n"
         f"{(rule_gate_block + chr(10) + chr(10)) if rule_gate_block else ''}"
         f"{(directions_block + chr(10) + chr(10)) if directions_block else ''}"
+        f"{(skeleton_block + chr(10) + chr(10)) if skeleton_block else ''}"
         f"{skill_prompt}"
     )
 
@@ -2919,10 +2999,18 @@ def run_mcp_enhancement(
         render_rule_gate_summary,
     )
 
+    # One EXPLAIN round-trip shared by the directions assembler and the plan
+    # skeleton below — previously each ran its own for the same SQL.
+    from .preflight import plan_cost as _plan_cost_shared
+    try:
+        _shared_explain_cost = _plan_cost_shared(sql, _build_mcp_explain_runner(client))
+    except Exception:
+        _shared_explain_cost = None
     directions, pre_table_metadata = _assemble_mcp_directions(
         client, sql, static_report,
         peak_memory_bytes=getattr(baseline.metrics, "peak_memory_bytes", 0) or None,
         peak_memory_limit_bytes=memory_limit_bytes,   # NEW
+        explain_cost=_shared_explain_cost,
     )
     rule_gate = build_rule_gate_summary(static_report, directions)
     rule_gate_block = format_rule_gate_for_prompt(rule_gate)
@@ -2931,6 +3019,26 @@ def run_mcp_enhancement(
         render_rule_gate_summary(output, rule_gate)
     if output and directions:
         output.progress(f"  Pre-execution diagnosis: {len(directions)} ranked direction(s) → prompt")
+
+    # Condensed plan skeleton + EXPLAIN ANALYZE hotspots: the directions block
+    # carries only rule-recognized patterns; the skeleton lets the model see
+    # the full optimizer-chosen tree, and the hotspot block anchors it to
+    # where the baseline actually spent CPU. Both are fail-open ("").
+    baseline_skeleton = ""
+    if _shared_explain_cost is not None and _shared_explain_cost[2] is not None:
+        try:
+            from genie.skills.trino_query.plan_render import render_plan_skeleton as _rps
+            baseline_skeleton = _rps(_shared_explain_cost[2])
+        except Exception:
+            baseline_skeleton = ""
+    skeleton_block = _format_plan_skeleton_block(
+        baseline_skeleton, label="Baseline plan skeleton"
+    )
+    hotspot_block = _format_hotspot_stages(original_explain)
+    if output and skeleton_block:
+        output.progress(f"  Plan skeleton: {len(baseline_skeleton.splitlines())} line(s) → prompt")
+    if output and hotspot_block:
+        output.progress(f"  EXPLAIN ANALYZE hotspots: {len(hotspot_block.splitlines()) - 1} stage(s) → prompt")
 
     # ── Session setup ──
     skill_prompt = build_prompt(True, model) if build_prompt else ""
@@ -2951,6 +3059,10 @@ def run_mcp_enhancement(
         sys_prompt += f"## Trino Optimization Guide\n\n{skill_instructions}\n\n"
     if directions_block:
         sys_prompt += f"{directions_block}\n\n"
+    if skeleton_block:
+        sys_prompt += f"{skeleton_block}\n\n"
+    if hotspot_block:
+        sys_prompt += f"{hotspot_block}\n\n"
     sys_prompt += skill_prompt
     session = new_session(sys_prompt)
 
@@ -3080,6 +3192,19 @@ def run_mcp_enhancement(
                 fresh_block = format_directions_for_prompt(_rd)
             except Exception:
                 fresh_block = ""
+            # Refresh the plan skeleton alongside directions — the tree in the
+            # system prompt describes the original SQL and goes stale the same
+            # way. Cached per SQL; each iteration message carries only this
+            # block, and the lean-history trim bounds accumulation.
+            _fresh_skeleton = _format_plan_skeleton_block(
+                _render_mcp_plan_skeleton(client, best_sql),
+                label="Current plan skeleton",
+            )
+            if _fresh_skeleton:
+                fresh_block = (
+                    f"{fresh_block}\n\n{_fresh_skeleton}" if fresh_block
+                    else _fresh_skeleton
+                )
             rediag_cache[best_sql] = fresh_block
         # Only inject when the query has actually changed (iter 1 is already
         # covered by the system prompt) and the diagnosis produced directions.
