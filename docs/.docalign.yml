@@ -1,0 +1,82 @@
+# managed by doc-align — edit via scripts/manifest.js
+docs:
+  - path: overview.md
+    type: overview
+    watch:
+      - genie/**
+    last_verified: d086db8c847d9e7edbdf2e9221efd93d9675ede7
+
+  - path: architecture.md
+    type: architecture
+    watch:
+      - genie/**
+    last_verified: d086db8c847d9e7edbdf2e9221efd93d9675ede7
+
+  - path: use-cases.md
+    type: use-case
+    watch:
+      - genie/cli.py
+      - genie/chat.py
+      - genie/skills/**
+    last_verified: d086db8c847d9e7edbdf2e9221efd93d9675ede7
+
+  - path: flows/trino-research-direct.md
+    type: sequence
+    watch:
+      - genie/skills/trino_query/**
+      - genie/chat.py
+    last_verified: d086db8c847d9e7edbdf2e9221efd93d9675ede7
+
+  - path: flows/trino-research-mcp.md
+    type: sequence
+    watch:
+      - genie/skills/mcp_trino/**
+      - genie/chat.py
+    last_verified: d086db8c847d9e7edbdf2e9221efd93d9675ede7
+
+  - path: flows/write-analysis.md
+    type: sequence
+    watch:
+      - genie/skills/mcp_trino/write_analysis.py
+      - genie/chat.py
+      - genie/skills/trino_query/research.py
+    last_verified: d086db8c847d9e7edbdf2e9221efd93d9675ede7
+
+  - path: class-diagram.md
+    type: class
+    watch:
+      - genie/core/**
+      - genie/providers/**
+      - genie/skills/mcp_trino/client.py
+      - genie/session/**
+      - genie/output/**
+    last_verified: d086db8c847d9e7edbdf2e9221efd93d9675ede7
+
+  - path: db-schema.md
+    type: db-schema
+    watch:
+      - infra/trino-stack/init/**
+      - infra/trino-stack/**
+    last_verified: d086db8c847d9e7edbdf2e9221efd93d9675ede7
+
+  - path: user-stories.md
+    type: use-case
+    watch:
+      - genie/cli.py
+      - genie/chat.py
+      - genie/skills/**
+      - genie/runtime/**
+    last_verified: d086db8c847d9e7edbdf2e9221efd93d9675ede7
+
+  - path: modules/core.md
+    type: class
+    watch:
+      - genie/core/**
+    last_verified: d086db8c847d9e7edbdf2e9221efd93d9675ede7
+
+  - path: modules/runtime.md
+    type: sequence
+    watch:
+      - genie/runtime/**
+      - genie/chat.py
+    last_verified: d086db8c847d9e7edbdf2e9221efd93d9675ede7
