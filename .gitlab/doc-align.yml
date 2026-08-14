@@ -5,9 +5,12 @@
 #     - local: '.gitlab/doc-align.yml'
 #
 # 於 GitLab CI/CD Variables（Settings → CI/CD → Variables，勾 Masked）設定：
-#   DOC_ALIGN_LLM_BASE_URL  — OpenAI-compatible endpoint（含 /v1，例 https://llm.internal/v1）
-#   DOC_ALIGN_LLM_API_KEY   — 該 endpoint 的 API key
-#   DOC_ALIGN_LLM_MODEL     — 模型名（照內部 gateway 的 model id）
+#   DOC_ALIGN_LLM_API_KEY   — 你選的 provider 的 API key（唯一 secret，中立命名）
+#   DOC_ALIGN_LLM_MODEL     — model id
+#   DOC_ALIGN_LLM_BASE_URL  — 自建 OpenAI-compatible endpoint（含 /v1，例
+#                             https://llm.internal/v1）；公司內部 gateway 走這個。
+#                             留空則改用 DOC_ALIGN_LLM_PROVIDER 指定 opencode 內建
+#                             provider（anthropic／openai／google／openrouter…）
 #   DOC_ALIGN_GITLAB_TOKEN  — 具 api scope 的 project access token（發 MR note 用；
 #                             CI_JOB_TOKEN 權限不足以建立 note）
 #   DOC_ALIGN_REPO_URL      — 選配：doc-align 的 clone URL；內網無法連 GitHub 時
@@ -42,26 +45,35 @@ doc-align:
     - curl -fsSL https://opencode.ai/install | bash
     - export PATH="$HOME/.opencode/bin:$PATH"
     - |
-      node -e '
-        const cfg = {
-          "$schema": "https://opencode.ai/config.json",
-          provider: {
-            internal: {
-              npm: "@ai-sdk/openai-compatible",
-              name: "Internal LLM",
-              options: {
-                baseURL: process.env.DOC_ALIGN_LLM_BASE_URL,
-                apiKey: process.env.DOC_ALIGN_LLM_API_KEY,
+      if [ -n "$DOC_ALIGN_LLM_BASE_URL" ]; then
+        node -e '
+          const cfg = {
+            "$schema": "https://opencode.ai/config.json",
+            provider: {
+              internal: {
+                npm: "@ai-sdk/openai-compatible",
+                name: "Internal LLM",
+                options: {
+                  baseURL: process.env.DOC_ALIGN_LLM_BASE_URL,
+                  apiKey: process.env.DOC_ALIGN_LLM_API_KEY,
+                },
+                models: { [process.env.DOC_ALIGN_LLM_MODEL]: { name: process.env.DOC_ALIGN_LLM_MODEL } },
               },
-              models: { [process.env.DOC_ALIGN_LLM_MODEL]: { name: process.env.DOC_ALIGN_LLM_MODEL } },
             },
-          },
-          model: "internal/" + process.env.DOC_ALIGN_LLM_MODEL,
-        };
-        require("fs").writeFileSync("opencode.json", JSON.stringify(cfg, null, 2));
-      '
+          };
+          require("fs").writeFileSync("opencode.json", JSON.stringify(cfg, null, 2));
+        '
+        MODEL_FLAG="internal/$DOC_ALIGN_LLM_MODEL"
+      else
+        case "$DOC_ALIGN_LLM_PROVIDER" in
+          google) export GOOGLE_GENERATIVE_AI_API_KEY="$DOC_ALIGN_LLM_API_KEY" ;;
+          *) KEY_ENV="$(echo "$DOC_ALIGN_LLM_PROVIDER" | tr 'a-z-' 'A-Z_')_API_KEY"
+             export "$KEY_ENV=$DOC_ALIGN_LLM_API_KEY" ;;
+        esac
+        MODEL_FLAG="$DOC_ALIGN_LLM_PROVIDER/$DOC_ALIGN_LLM_MODEL"
+      fi
     - |
-      opencode run \
+      opencode run -m "$MODEL_FLAG" \
         "你是 doc-align 的執行 agent。讀取 $DOC_ALIGN_DIR/playbook/check.md 並完全遵循其步驟；<SCRIPTS> 為 $DOC_ALIGN_DIR/scripts；以 --range $RANGE 執行。輸出只包含 drift 報告本體（markdown），不要任何前後綴。" \
         > report.md
     - rm -f opencode.json

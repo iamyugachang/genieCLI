@@ -1,5 +1,7 @@
 # doc-align drift check — 複製到目標 repo 的 .github/workflows/doc-align.yml
-# 需求：secrets.ANTHROPIC_API_KEY；doc-align repo 若為 private 另需 secrets.DOC_ALIGN_TOKEN
+# 需求：secrets.DOC_ALIGN_LLM_API_KEY（Anthropic key——本範本的 runner 是 claude CLI，
+# 固定走 Anthropic；要用其他家的 token 請改用 opencode 版範本）。
+# doc-align repo 若為 private 另需 secrets.DOC_ALIGN_TOKEN
 # 非阻塞設計：drift 只留言，不 fail job。
 name: doc-align
 on:
@@ -39,7 +41,8 @@ jobs:
       - name: Drift check (LLM)
         if: steps.gate.outputs.skip != 'true'
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # claude CLI 認 ANTHROPIC_API_KEY 這個 env 名；repo secret 用中立名稱
+          ANTHROPIC_API_KEY: ${{ secrets.DOC_ALIGN_LLM_API_KEY }}
           RANGE: ${{ steps.gate.outputs.range }}
         run: |
           npm install -g @anthropic-ai/claude-code
