@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
-<title>GenieCLI Handbook</title>
+<title>genieCLI Handbook</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
 :root {
@@ -10,7 +10,6 @@
   --accent:#0E7C86; --accent-ink:#0A5E66; --line:#DCE4E9; --code-bg:#ECF1F4;
   --cite-bg:#E2F0F1; --badge-ink:#FFFFFF; --shadow:0 1px 2px rgba(28,39,51,.06);
 }
-:root:not([data-theme="light"]) {}
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --paper:#12161C; --panel:#181E26; --ink:#D9E0E7; --muted:#8A97A3;
@@ -36,7 +35,6 @@ nav {
   padding:28px 20px 40px; position:sticky; top:0; height:100vh; overflow-y:auto;
   background:var(--panel);
 }
-.brand { margin-bottom:6px; }
 .brand .g { color:var(--accent); font-weight:700; letter-spacing:.02em; font-size:19px; }
 .brand .sub { color:var(--muted); font-size:12.5px; margin-top:2px; line-height:1.5; }
 .meta { font-size:11.5px; color:var(--muted); border-top:1px solid var(--line);
@@ -46,7 +44,7 @@ nav {
 .nav-label { font-size:11px; letter-spacing:.14em; color:var(--muted);
   text-transform:uppercase; margin-bottom:4px; }
 nav a { color:var(--ink); text-decoration:none; font-size:14px; padding:4px 8px;
-  border-radius:5px; border-left:2px solid transparent; }
+  border-radius:5px; }
 nav a:hover { background:var(--code-bg); }
 nav a:focus-visible, main a:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 main { flex:1; min-width:0; padding:44px clamp(20px,5vw,72px) 96px; }
@@ -63,12 +61,10 @@ h3 { font-size:19px; margin:34px 0 10px; }
 h4 { font-size:16px; margin:26px 0 8px; }
 h3::before { content:"§ "; color:var(--accent); }
 p { margin:0 0 14px; }
-strong { font-weight:700; }
 code { background:var(--code-bg); padding:1.5px 5px; border-radius:4px; font-size:13.2px; }
 code.cite { background:var(--cite-bg); color:var(--accent-ink); font-size:12px; white-space:nowrap; }
 a { color:var(--accent-ink); }
 ol.rules { padding-left:0; margin:0 0 16px; list-style:none; counter-reset:rule; }
-ol.rules[start="2"] { counter-reset:rule 1; }
 ol.rules li { counter-increment:rule; position:relative; padding:8px 12px 8px 46px;
   border-left:3px solid var(--line); margin-bottom:8px; background:var(--panel);
   border-radius:0 6px 6px 0; box-shadow:var(--shadow); }
@@ -103,57 +99,41 @@ tr:last-child td { border-bottom:none; }
 <body>
 <div class="layout">
 <nav>
-  <div class="brand"><div class="g">GenieCLI Handbook</div>
-  <div class="sub">AI 輔助 Trino SQL 調校 CLI 的一站式技術文件</div></div>
-  <div class="nav-group"><div class="nav-label">導讀</div><a href="#overview">導讀與詞彙</a></div><div class="nav-group"><div class="nav-label">產品視角</div><a href="#user-stories">User Stories</a><a href="#use-cases">功能入口</a></div><div class="nav-group"><div class="nav-label">系統視角</div><a href="#architecture">系統架構</a><a href="#class-diagram">核心類別圖</a></div><div class="nav-group"><div class="nav-label">核心流程</div><a href="#flow-direct">研究管線 --direct</a><a href="#flow-mcp">研究管線 MCP</a><a href="#flow-write">寫入型離線分析</a></div><div class="nav-group"><div class="nav-label">模組合約</div><a href="#mod-core">genie/core 合約</a><a href="#mod-runtime">autoresearch 引擎</a></div><div class="nav-group"><div class="nav-label">資料</div><a href="#db-schema">e2e 測試 Schema</a></div>
-  <div class="meta">由 doc-align 對齊維護<br>對齊基準 <code>d086db8</code><br>文件 commit <code>d7bcb0f</code> · 2026-08-14</div>
+  <div class="brand"><div class="g">genieCLI Handbook</div>
+  <div class="sub">doc-align 文件集單頁閱讀版</div></div>
+  <div class="nav-group"><div class="nav-label">導讀</div>
+  <a href="#overview">GenieCLI 文件導讀</a>
+  </div>
+  <div class="nav-group"><div class="nav-label">使用情境</div>
+  <a href="#use-cases">Use Cases</a>
+  <a href="#user-stories">User Stories（產品行為覆蓋）</a>
+  </div>
+  <div class="nav-group"><div class="nav-label">架構</div>
+  <a href="#architecture">系統架構</a>
+  </div>
+  <div class="nav-group"><div class="nav-label">類別</div>
+  <a href="#class-diagram">核心類別圖</a>
+  <a href="#modules-core">模組：genie/core（共用基礎層）</a>
+  </div>
+  <div class="nav-group"><div class="nav-label">流程</div>
+  <a href="#flows-trino-research-direct">/trino-research --direct（trino driver 直連研究管線）</a>
+  <a href="#flows-trino-research-mcp">/trino-research（MCP 研究管線，預設路徑）</a>
+  <a href="#flows-write-analysis">寫入型 SQL 離線分析（write-analysis）</a>
+  <a href="#modules-runtime">模組：genie/runtime（autoresearch 迭代引擎）</a>
+  </div>
+  <div class="nav-group"><div class="nav-label">資料</div>
+  <a href="#db-schema">DB Schema（e2e 測試環境）</a>
+  </div>
+  <div class="meta">由 doc-align render 生成<br>對齊 commit <code>8b8fac7</code><br>2026-08-14</div>
 </nav>
 <main><div class="inner">
-<section id="overview"><header class="sec-head"><span class="badge b-overview">overview</span><h2>GenieCLI 文件導讀</h2><code class="src">docs/overview.md</code></header><h3>系統目的</h3>
+<section id="overview"><header class="sec-head"><span class="badge">overview</span><h2>GenieCLI 文件導讀</h2><code class="src">docs/overview.md</code></header><h3>系統目的</h3>
 <p>GenieCLI 是以 LLM 輔助調校 Trino SQL 的命令列工具：先整理 SQL 結構、EXPLAIN 與可取得的執行證據，再請模型提出候選改寫，並以實測數據（而非模型自評）決定是否採納；同時支援 Oracle→Trino 遷移輔助。三個安全承諾貫穿設計：先檢查再執行（read-only preflight）、候選必須驗證（失敗候選不取代基準 SQL）、路徑不偷換（MCP 不可達即明確失敗）。</p>
 <h3>Domain 詞彙表</h3>
-<div class='tablewrap'><table><thead><tr><th>詞彙</th><th>一行定義</th></tr></thead><tbody><tr><td>direct 路徑</td><td><code>--direct</code>：以 trino Python driver 直連叢集執行研究管線</td></tr><tr><td>MCP 路徑</td><td>預設路徑：SQL 執行經 MCP server（JSON-RPC over HTTP）轉發到 Trino</td></tr><tr><td>baseline</td><td>原始 SQL 的實測基準（median of N runs），所有候選與之比較</td></tr><tr><td>candidate</td><td>LLM 提出的一次改寫；須通過等價閘門與指標改善才被採納</td></tr><tr><td>metric</td><td>優化目標指標（cpu_time_ms、wall_time_ms、physical_input_bytes…），越低越好</td></tr><tr><td>preflight</td><td>執行前安全檢查：read-only 驗證＋EXPLAIN 可行性，拒絕即中止</td></tr><tr><td>preflight decision</td><td>baseline 量測後的路由決策：diagnose-only／no-data／failure／long-query／plan-cost／standard</td></tr><tr><td>long-query gate</td><td>baseline 過慢時的閘門；<code>--no-long-query</code> 下改出 directed report 不迭代</td></tr><tr><td>plan-cost loop</td><td>EXPLAIN 成本估計可用時的替代迴圈（以計畫成本篩選候選）</td></tr><tr><td>stepwise A/B/C</td><td>迭代內三步：Step A 診斷 → Step B 選策略 → Step C 改寫（含證據注入）</td></tr><tr><td>seed decompose</td><td>v48：迭代前先嘗試拆解重組原始 SQL 選出更好的起點</td></tr><tr><td>directions</td><td>零成本診斷產出的排序建議（OptimizationDirection），餵進 LLM prompt</td></tr><tr><td>rule gate</td><td>靜態規則與 directions 的彙總摘要，同樣注入 prompt</td></tr><tr><td>write-analysis</td><td>寫入型 SQL 的離線 advisory 分析：不執行、不驗證、只建議</td></tr><tr><td>safe-limit</td><td><code>--safe-limit n</code>：外層包 LIMIT n（會改變語意，需明示）</td></tr><tr><td>L1／L2／L3</td><td>候選證據三層：靜態／計畫結構／執行等價，彙總為 ship_status</td></tr><tr><td>profile</td><td>Trino 直連連線設定（`/trino use</td><td>add</td><td>remove<code>），存 </code>~/.config/genie/trino.json`</td></tr><tr><td>provider</td><td>LLM 後端抽象：tgenie（內部）／openai 相容／anthropic</td></tr><tr><td>skill</td><td>註冊給模型的工具（BaseSkill），tier 決定載入的模型等級</td></tr><tr><td>session</td><td>REPL 對話存檔（JSON，<code>sessions/</code>），支援 undo／redo／branch／compact</td></tr><tr><td>autoresearch</td><td><code>/autoresearch</code>：LLM 自主迭代改檔案，git checkpoint 保護、指標裁決</td></tr><tr><td>checkpoint</td><td>autoresearch 每迭代的 git commit 快照；失敗 <code>reset --hard</code> 回 original_head</td></tr><tr><td>guard</td><td>autoresearch 選配的守門命令（如 linter）；非零退出即整步還原</td></tr><tr><td>journal</td><td>autoresearch 的 TSV 逐迭代紀錄檔</td></tr><tr><td>ContextManager</td><td>對話歷史修剪器：70% 觸發、保留 system＋最後 4 則</td></tr></tbody></table></div>
+<div class="tablewrap"><table><thead><tr><th>詞彙</th><th>一行定義</th></tr></thead><tbody><tr><td>direct 路徑</td><td><code>--direct</code>：以 trino Python driver 直連叢集執行研究管線</td></tr><tr><td>MCP 路徑</td><td>預設路徑：SQL 執行經 MCP server（JSON-RPC over HTTP）轉發到 Trino</td></tr><tr><td>baseline</td><td>原始 SQL 的實測基準（median of N runs），所有候選與之比較</td></tr><tr><td>candidate</td><td>LLM 提出的一次改寫；須通過等價閘門與指標改善才被採納</td></tr><tr><td>metric</td><td>優化目標指標（cpu_time_ms、wall_time_ms、physical_input_bytes…），越低越好</td></tr><tr><td>preflight</td><td>執行前安全檢查：read-only 驗證＋EXPLAIN 可行性，拒絕即中止</td></tr><tr><td>preflight decision</td><td>baseline 量測後的路由決策：diagnose-only／no-data／failure／long-query／plan-cost／standard</td></tr><tr><td>long-query gate</td><td>baseline 過慢時的閘門；<code>--no-long-query</code> 下改出 directed report 不迭代</td></tr><tr><td>plan-cost loop</td><td>EXPLAIN 成本估計可用時的替代迴圈（以計畫成本篩選候選）</td></tr><tr><td>stepwise A/B/C</td><td>迭代內三步：Step A 診斷 → Step B 選策略 → Step C 改寫（含證據注入）</td></tr><tr><td>seed decompose</td><td>v48：迭代前先嘗試拆解重組原始 SQL 選出更好的起點</td></tr><tr><td>directions</td><td>零成本診斷產出的排序建議（OptimizationDirection），餵進 LLM prompt</td></tr><tr><td>rule gate</td><td>靜態規則與 directions 的彙總摘要，同樣注入 prompt</td></tr><tr><td>write-analysis</td><td>寫入型 SQL 的離線 advisory 分析：不執行、不驗證、只建議</td></tr><tr><td>safe-limit</td><td><code>--safe-limit n</code>：外層包 LIMIT n（會改變語意，需明示）</td></tr><tr><td>L1／L2／L3</td><td>候選證據三層：靜態／計畫結構／執行等價，彙總為 ship_status</td></tr><tr><td>profile</td><td>Trino 直連連線設定（`/trino use</td><td>add</td><td>remove<code>），存 </code>~/.config/genie/trino.json`</td></tr><tr><td>provider</td><td>LLM 後端抽象：tgenie（內部）／openai 相容／anthropic</td></tr><tr><td>skill</td><td>註冊給模型的工具（BaseSkill），tier 決定載入的模型等級</td></tr><tr><td>session</td><td>REPL 對話存檔（JSON，<code>sessions/</code>），支援 undo／redo／branch／compact</td></tr><tr><td>autoresearch</td><td><code>/autoresearch</code>：LLM 自主迭代改檔案，git checkpoint 保護、指標裁決</td></tr><tr><td>checkpoint</td><td>autoresearch 每迭代的 git commit 快照；失敗 <code>reset --hard</code> 回 original_head</td></tr><tr><td>guard</td><td>autoresearch 選配的守門命令（如 linter）；非零退出即整步還原</td></tr><tr><td>journal</td><td>autoresearch 的 TSV 逐迭代紀錄檔</td></tr><tr><td>ContextManager</td><td>對話歷史修剪器：70% 觸發、保留 system＋最後 4 則</td></tr></tbody></table></div>
 <h3>文件導讀順序</h3>
-<ol class='rules' start='1'><li><strong><a href="#overview">overview.md</a></strong>（本文件）— 系統目的與詞彙。</li><li><strong><a href="#user-stories">user-stories.md</a></strong> — 產品行為的功能覆蓋：11 則故事＋驗收要點（PM／產品視角從這裡）。</li><li><strong><a href="#architecture">architecture.md</a></strong> — 模組分層、資料流、外部依賴；找「要改哪個 component」從這裡開始。</li><li><strong><a href="#use-cases">use-cases.md</a></strong> — 所有功能入口與觸發方式。</li><li><strong><a href="#flow-direct">flows/trino-research-direct.md</a></strong> — 核心研究管線全流程（路由狀態圖、迭代、報告）。</li><li><strong><a href="#flow-mcp">flows/trino-research-mcp.md</a></strong> — MCP 路徑差異：連線層、可達性、證據覆蓋。</li><li><strong><a href="#flow-write">flows/write-analysis.md</a></strong> — 寫入型 SQL 的離線分析與安全契約。</li><li><strong><a href="#class-diagram">class-diagram.md</a></strong> — 可抽換點：Provider／BaseSkill／McpClient／Sink。</li><li><strong><a href="#mod-core">modules/core.md</a></strong> — 共用基礎層的合約與不變量（registry／config／context 修剪）。</li><li><strong><a href="#mod-runtime">modules/runtime.md</a></strong> — autoresearch 迭代引擎（checkpoint／guard／journal）。</li><li><strong><a href="#db-schema">db-schema.md</a></strong> — e2e 測試環境的種子資料表。</li></ol></section><section id="user-stories"><header class="sec-head"><span class="badge b-use-case">use-case</span><h2>User Stories（產品行為覆蓋）</h2><code class="src">docs/user-stories.md</code></header><h3>目的與情境</h3>
-<p>以使用者故事表達 GenieCLI 的功能覆蓋範圍：每則故事一句「身為…我要…以便…」，附驗收要點（連到 flows／use-cases 的行為規則編號與程式碼證據）。看這份可以回答「產品現在做到了什麼、保證了什麼」；細節機制往連結的文件走。故事依三個 epic 分組，對應 <a href="#use-cases">use-cases.md</a> 的三個入口層。</p>
-<h3>圖</h3>
-<div class="diagram"><pre class="mermaid">graph TB
-    subgraph EPIC1["Epic 1：SQL 優化研究"]
-        S1["US-1 讀取型 SQL 迭代優化"]
-        S2["US-2 寫入型 SQL 安全分析"]
-        S3["US-3 零成本診斷"]
-        S4["US-4 慢查詢保護"]
-        S5["US-5 結果等價保證"]
-    end
-    subgraph EPIC2["Epic 2：環境與遷移"]
-        S6["US-6 多環境連線切換"]
-        S7["US-7 Oracle 遷移輔助"]
-        S8["US-8 一鍵環境健檢"]
-    end
-    subgraph EPIC3["Epic 3：對話工作區"]
-        S9["US-9 對話續接與分支"]
-        S10["US-10 自動化程式碼實驗"]
-        S11["US-11 腳本化整合"]
-    end
-    EPIC1 --&gt; EPIC2
-    EPIC2 --&gt; EPIC3</pre></div>
-<h3>Stories</h3>
-<h4>Epic 1：SQL 優化研究</h4>
-<p><strong>US-1 讀取型 SQL 迭代優化</strong> — 身為資料工程師，我要把慢的 SELECT 丟給 <code>/trino-research</code>，以便拿到實測驗證過的改寫與報告。 驗收：預設走 MCP、<code>--direct</code> 直連（<a href="#flow-mcp">flows/trino-research-mcp.md</a> 規則 3-4）；每個候選以 median of N runs 實測、只有更好才保留（<a href="#flow-direct">flows/trino-research-direct.md</a> 規則 2）；報告存 <code>report/</code>（同文件實作細節）。</p>
-<p><strong>US-2 寫入型 SQL 安全分析</strong> — 身為資料工程師，我要丟 INSERT／CTAS 等寫入 SQL 也能拿建議，以便不冒任何執行風險。 驗收：自動分類為寫入型即轉離線分析，不執行、不 EXPLAIN、不碰叢集；報告固定標 <code>executed: False</code>、<code>advisory_only: True</code>（<a href="#flow-write">flows/write-analysis.md</a> 規則 1、7）。</p>
-<p><strong>US-3 零成本診斷</strong> — 身為資料工程師，我要 <code>--diagnose-only</code> 只看診斷不跑查詢，以便在敏感時段也能分析。 驗收：static＋EXPLAIN 即出 directed report，無查詢執行（<a href="#flow-direct">flows/trino-research-direct.md</a> 規則行為與路由狀態圖 DIAGNOSE_ONLY）。</p>
-<p><strong>US-4 慢查詢保護</strong> — 身為平台管理者，我要工具不會反覆執行本來就很慢的查詢，以便叢集不被研究流量拖垮。 驗收：long-query gate（<code>--no-long-query</code> 時超門檻改出報告不迭代）；候選 timeout 上限＝baseline 牆鐘（<a href="#flow-direct">flows/trino-research-direct.md</a> 規則 5-6）。</p>
-<p><strong>US-5 結果等價保證</strong> — 身為資料工程師，我要優化後的 SQL 保證同結果，以便敢直接替換上線。 驗收：等價閘門比對 row multiset（無 ORDER BY 時）；證據不完整時報告 fail-closed 標 unverified 與原因，絕不誇稱（<a href="#flow-direct">flows/trino-research-direct.md</a> 規則 13、15）。</p>
-<h4>Epic 2：環境與遷移</h4>
-<p><strong>US-6 多環境連線切換</strong> — 身為要面對多套 Trino 的工程師，我要以 profile 管理連線並隨時切換，以便同一工具打到不同環境。 驗收：<code>/trino use|add|remove|test</code>，profile 存 <code>~/.config/genie/trino.json</code>（<a href="#use-cases">use-cases.md</a>「/trino 連線 profile 管理」）。</p>
-<p><strong>US-7 Oracle 遷移輔助</strong> — 身為做 Oracle→Trino 遷移的工程師，我要在對話中請模型轉換與檢查 SP，以便半自動完成語法搬遷。 驗收：六個 oracle2trino 工具註冊給模型（transpile／lookup／limitations／SP 分析／lint）；轉換信心分數與 manual_fix_notes 結構化輸出（<a href="#use-cases">use-cases.md</a>「oracle2trino 轉換工具組」）。</p>
-<p><strong>US-8 一鍵環境健檢</strong> — 身為新手使用者，我要 <code>genie doctor</code> 一次檢查所有整合，以便快速定位缺哪個設定。 驗收：檢查 Python／依賴／LLM／Trino／MCP；<code>genie verify</code> 為相容別名（<a href="#use-cases">use-cases.md</a>「genie doctor」、<a href="#architecture">architecture.md</a> 實作細節）。</p>
-<h4>Epic 3：對話工作區</h4>
-<p><strong>US-9 對話續接與分支</strong> — 身為使用者，我要對話能存檔、載回、undo／redo、從第 n 輪分支、壓縮長度，以便長研究不怕走錯路。 驗收：<code>/sessions /load /undo /redo /branch /compact</code>；退出時有內容才存檔（<a href="#use-cases">use-cases.md</a>「session 管理」）。</p>
-<p><strong>US-10 自動化程式碼實驗</strong> — 身為工程師，我要 <code>/autoresearch</code> 讓模型自主迭代改 code 並以指標裁決，以便掛機做優化實驗。 驗收：每迭代 git checkpoint、guard／指標未過自動 <code>reset --hard</code> 還原、TSV journal 全程記錄（<a href="#mod-runtime">modules/runtime.md</a> 規則 3-7、9）。</p>
-<p><strong>US-11 腳本化整合</strong> — 身為要把 genie 接進 pipeline 的工程師，我要非 TTY／<code>--json</code> 時輸出機器可讀，以便下游程式解析。 驗收：非 TTY 或 <code>--json</code> 自動切 MachineSink（result→stdout、error→stderr、progress 靜默、confirm 不阻塞）（<a href="#class-diagram">class-diagram.md</a> 規則 13、實作細節）。</p>
-<h3>已知未覆蓋（誠實邊界）</h3>
-<ul><li>- 互動貼上模式的寫入型 SQL 仍可能先探測 MCP 可達性（v35 已知邊界，<a href="#flow-write">flows/write-analysis.md</a> 設計決策）。</li><li>- <code>--direct</code> 路徑不支援記憶體相關環境變數（<a href="#flow-direct">flows/trino-research-direct.md</a> 實作細節）。</li><li>- REPL 幫助文字的 metric 清單與兩路徑實際清單不一致（已記錄於 <a href="#flow-mcp">flows/trino-research-mcp.md</a> 實作細節，待修）。</li></ul></section><section id="use-cases"><header class="sec-head"><span class="badge b-use-case">use-case</span><h2>Use Cases</h2><code class="src">docs/use-cases.md</code></header><h3>目的與情境</h3>
+<ol class="rules" start="1"><li><strong><a href="#overview">overview.md</a></strong>（本文件）— 系統目的與詞彙。</li><li><strong><a href="#user-stories">user-stories.md</a></strong> — 產品行為的功能覆蓋：11 則故事＋驗收要點（PM／產品視角從這裡）。</li><li><strong><a href="#architecture">architecture.md</a></strong> — 模組分層、資料流、外部依賴；找「要改哪個 component」從這裡開始。</li><li><strong><a href="#use-cases">use-cases.md</a></strong> — 所有功能入口與觸發方式。</li><li><strong><a href="#flows-trino-research-direct">flows/trino-research-direct.md</a></strong> — 核心研究管線全流程（路由狀態圖、迭代、報告）。</li><li><strong><a href="#flows-trino-research-mcp">flows/trino-research-mcp.md</a></strong> — MCP 路徑差異：連線層、可達性、證據覆蓋。</li><li><strong><a href="#flows-write-analysis">flows/write-analysis.md</a></strong> — 寫入型 SQL 的離線分析與安全契約。</li><li><strong><a href="#class-diagram">class-diagram.md</a></strong> — 可抽換點：Provider／BaseSkill／McpClient／Sink。</li><li><strong><a href="#modules-core">modules/core.md</a></strong> — 共用基礎層的合約與不變量（registry／config／context 修剪）。</li><li><strong><a href="#modules-runtime">modules/runtime.md</a></strong> — autoresearch 迭代引擎（checkpoint／guard／journal）。</li><li><strong><a href="#db-schema">db-schema.md</a></strong> — e2e 測試環境的種子資料表。</li></ol></section>
+<section id="use-cases"><header class="sec-head"><span class="badge">use-case</span><h2>Use Cases</h2><code class="src">docs/use-cases.md</code></header><h3>目的與情境</h3>
 <p>GenieCLI 的功能入口分三類：CLI 引數層（<code>genie</code> 指令本身）、REPL 斜線命令層（互動聊天內），以及註冊給 LLM 的 tool 層（模型在對話中自主呼叫）。本文件列出每個入口的觸發方式與一句話行為，供快速回答「這個功能從哪裡進、做什麼」。</p>
 <h3>圖</h3>
 <div class="diagram"><pre class="mermaid">graph LR
@@ -197,14 +177,55 @@ tr:last-child td { border-bottom:none; }
 <p><strong>genie setup</strong> — <code>genie setup</code>（預設 llm）／<code>genie setup trino</code>／<code>genie setup mcp</code> 進入互動設定精靈，分別寫入 <code>~/.genie/config.toml</code>、<code>~/.config/genie/trino.json</code>、<code>~/.config/genie/mcp.json</code>（genie/cli.py:218-221；README「設定並檢查」）。</p>
 <p><strong>genie doctor</strong> — <code>genie doctor</code>（或 <code>genie verify</code>）檢查 Python、依賴、LLM、Trino 與 MCP 整合<code class="cite">genie/cli.py:215-217</code>。</p>
 <p><strong>sessions／config／tools 檢視</strong> — <code>genie sessions</code>、<code>genie config</code>、<code>genie tools</code> 分別列出既存對話、生效設定與已註冊 skills<code class="cite">genie/cli.py:206-214</code>。</p>
-<p><strong>/trino-research 讀取型 SQL 優化</strong> — REPL 內最核心的入口。讀取型 SQL 依 <code>--direct</code> 走 trino driver 直連或（預設）MCP 管線，迭代產生候選改寫並實測，報告寫入 <code>report/</code>。詳見 <a href="#flow-direct">flows/trino-research-direct.md</a> 與 <a href="#flow-mcp">flows/trino-research-mcp.md</a><code class="cite">genie/chat.py:908-943</code>。</p>
-<p><strong>/trino-research 寫入型離線分析</strong> — <code>--file</code> 內容判定為寫入型（INSERT／UPDATE／DDL 等）時，只做離線 advisory 分析，不執行任何 SQL。詳見 <a href="#flow-write">flows/write-analysis.md</a><code class="cite">genie/chat.py:914-917</code>。</p>
+<p><strong>/trino-research 讀取型 SQL 優化</strong> — REPL 內最核心的入口。讀取型 SQL 依 <code>--direct</code> 走 trino driver 直連或（預設）MCP 管線，迭代產生候選改寫並實測，報告寫入 <code>report/</code>。詳見 <a href="#flows-trino-research-direct">flows/trino-research-direct.md</a> 與 <a href="#flows-trino-research-mcp">flows/trino-research-mcp.md</a><code class="cite">genie/chat.py:908-943</code>。</p>
+<p><strong>/trino-research 寫入型離線分析</strong> — <code>--file</code> 內容判定為寫入型（INSERT／UPDATE／DDL 等）時，只做離線 advisory 分析，不執行任何 SQL。詳見 <a href="#flows-write-analysis">flows/write-analysis.md</a><code class="cite">genie/chat.py:914-917</code>。</p>
 <p><strong>/trino-research --diagnose-only</strong> — 零成本直達診斷報告：static 規則＋EXPLAIN 計畫，不執行查詢<code class="cite">genie/skills/trino_query/research.py:1416-1427</code>。</p>
 <p><strong>/trino 連線 profile 管理</strong> — <code>/trino</code>（列出）、<code>/trino use|add|remove &lt;name&gt;</code>、<code>/trino test</code>：多組 Trino 直連 profile 的切換與互動新增<code class="cite">genie/chat.py:770-836</code>。</p>
 <p><strong>/autoresearch 批次研究</strong> — 需啟用 skills；把研究流程交給 runtime 的檢查點式批次執行<code class="cite">genie/chat.py:947-955</code>。</p>
 <p><strong>session 管理</strong> — <code>/new</code>／<code>/sessions</code>／<code>/load</code>／<code>/history</code>／<code>/clear</code>／<code>/undo</code>／<code>/redo</code>／<code>/branch &lt;n&gt;</code>／<code>/compact [n]</code>；退出時有使用者訊息才存檔<code class="cite">genie/chat.py:468-727</code>。另有 <code>/reasoning</code>（循環切換推理等級，genie/chat.py:730-749）與 <code>/renew</code>（跑 <code>grab_auth.py</code> 刷新 TGenie token，genie/chat.py:752-767）。</p>
 <p><strong>oracle2trino 轉換工具組（LLM tool）</strong> — 六個工具註冊給模型自主呼叫：<code>transpile_sql</code>（sqlglot 機械轉換）、<code>lookup_oracle_function</code>、<code>lookup_oracle_type</code>、<code>list_trino_limitations</code>、<code>analyze_oracle_sp</code>（含 connector 差異註記）、<code>lint_trino_sql</code><code class="cite">genie/skills/oracle2trino/__init__.py:287-293</code>。</p>
-<p><strong>lint_trino_sql 靜態檢查（LLM tool）</strong> — 偵測 Oracle 殘留（NVL／DECODE／ROWNUM／(+) join）、SELECT *、隱式 cross join、COUNT(DISTINCT) 等，回傳含 severity 與修法的結構化 findings<code class="cite">genie/skills/oracle2trino/__init__.py:262-284</code>。</p></section><section id="architecture"><header class="sec-head"><span class="badge b-architecture">architecture</span><h2>系統架構</h2><code class="src">docs/architecture.md</code></header><h3>目的與情境</h3>
+<p><strong>lint_trino_sql 靜態檢查（LLM tool）</strong> — 偵測 Oracle 殘留（NVL／DECODE／ROWNUM／(+) join）、SELECT *、隱式 cross join、COUNT(DISTINCT) 等，回傳含 severity 與修法的結構化 findings<code class="cite">genie/skills/oracle2trino/__init__.py:262-284</code>。</p></section>
+<section id="user-stories"><header class="sec-head"><span class="badge">use-case</span><h2>User Stories（產品行為覆蓋）</h2><code class="src">docs/user-stories.md</code></header><h3>目的與情境</h3>
+<p>以使用者故事表達 GenieCLI 的功能覆蓋範圍：每則故事一句「身為…我要…以便…」，附驗收要點（連到 flows／use-cases 的行為規則編號與程式碼證據）。看這份可以回答「產品現在做到了什麼、保證了什麼」；細節機制往連結的文件走。故事依三個 epic 分組，對應 <a href="#use-cases">use-cases.md</a> 的三個入口層。</p>
+<h3>圖</h3>
+<div class="diagram"><pre class="mermaid">graph TB
+    subgraph EPIC1["Epic 1：SQL 優化研究"]
+        S1["US-1 讀取型 SQL 迭代優化"]
+        S2["US-2 寫入型 SQL 安全分析"]
+        S3["US-3 零成本診斷"]
+        S4["US-4 慢查詢保護"]
+        S5["US-5 結果等價保證"]
+    end
+    subgraph EPIC2["Epic 2：環境與遷移"]
+        S6["US-6 多環境連線切換"]
+        S7["US-7 Oracle 遷移輔助"]
+        S8["US-8 一鍵環境健檢"]
+    end
+    subgraph EPIC3["Epic 3：對話工作區"]
+        S9["US-9 對話續接與分支"]
+        S10["US-10 自動化程式碼實驗"]
+        S11["US-11 腳本化整合"]
+    end
+    EPIC1 --&gt; EPIC2
+    EPIC2 --&gt; EPIC3</pre></div>
+<h3>Stories</h3>
+<h4>Epic 1：SQL 優化研究</h4>
+<p><strong>US-1 讀取型 SQL 迭代優化</strong> — 身為資料工程師，我要把慢的 SELECT 丟給 <code>/trino-research</code>，以便拿到實測驗證過的改寫與報告。 驗收：預設走 MCP、<code>--direct</code> 直連（<a href="#flows-trino-research-mcp">flows/trino-research-mcp.md</a> 規則 3-4）；每個候選以 median of N runs 實測、只有更好才保留（<a href="#flows-trino-research-direct">flows/trino-research-direct.md</a> 規則 2）；報告存 <code>report/</code>（同文件實作細節）。</p>
+<p><strong>US-2 寫入型 SQL 安全分析</strong> — 身為資料工程師，我要丟 INSERT／CTAS 等寫入 SQL 也能拿建議，以便不冒任何執行風險。 驗收：自動分類為寫入型即轉離線分析，不執行、不 EXPLAIN、不碰叢集；報告固定標 <code>executed: False</code>、<code>advisory_only: True</code>（<a href="#flows-write-analysis">flows/write-analysis.md</a> 規則 1、7）。</p>
+<p><strong>US-3 零成本診斷</strong> — 身為資料工程師，我要 <code>--diagnose-only</code> 只看診斷不跑查詢，以便在敏感時段也能分析。 驗收：static＋EXPLAIN 即出 directed report，無查詢執行（<a href="#flows-trino-research-direct">flows/trino-research-direct.md</a> 規則行為與路由狀態圖 DIAGNOSE_ONLY）。</p>
+<p><strong>US-4 慢查詢保護</strong> — 身為平台管理者，我要工具不會反覆執行本來就很慢的查詢，以便叢集不被研究流量拖垮。 驗收：long-query gate（<code>--no-long-query</code> 時超門檻改出報告不迭代）；候選 timeout 上限＝baseline 牆鐘（<a href="#flows-trino-research-direct">flows/trino-research-direct.md</a> 規則 5-6）。</p>
+<p><strong>US-5 結果等價保證</strong> — 身為資料工程師，我要優化後的 SQL 保證同結果，以便敢直接替換上線。 驗收：等價閘門比對 row multiset（無 ORDER BY 時）；證據不完整時報告 fail-closed 標 unverified 與原因，絕不誇稱（<a href="#flows-trino-research-direct">flows/trino-research-direct.md</a> 規則 13、15）。</p>
+<h4>Epic 2：環境與遷移</h4>
+<p><strong>US-6 多環境連線切換</strong> — 身為要面對多套 Trino 的工程師，我要以 profile 管理連線並隨時切換，以便同一工具打到不同環境。 驗收：<code>/trino use|add|remove|test</code>，profile 存 <code>~/.config/genie/trino.json</code>（<a href="#use-cases">use-cases.md</a>「/trino 連線 profile 管理」）。</p>
+<p><strong>US-7 Oracle 遷移輔助</strong> — 身為做 Oracle→Trino 遷移的工程師，我要在對話中請模型轉換與檢查 SP，以便半自動完成語法搬遷。 驗收：六個 oracle2trino 工具註冊給模型（transpile／lookup／limitations／SP 分析／lint）；轉換信心分數與 manual_fix_notes 結構化輸出（<a href="#use-cases">use-cases.md</a>「oracle2trino 轉換工具組」）。</p>
+<p><strong>US-8 一鍵環境健檢</strong> — 身為新手使用者，我要 <code>genie doctor</code> 一次檢查所有整合，以便快速定位缺哪個設定。 驗收：檢查 Python／依賴／LLM／Trino／MCP；<code>genie verify</code> 為相容別名（<a href="#use-cases">use-cases.md</a>「genie doctor」、<a href="#architecture">architecture.md</a> 實作細節）。</p>
+<h4>Epic 3：對話工作區</h4>
+<p><strong>US-9 對話續接與分支</strong> — 身為使用者，我要對話能存檔、載回、undo／redo、從第 n 輪分支、壓縮長度，以便長研究不怕走錯路。 驗收：<code>/sessions /load /undo /redo /branch /compact</code>；退出時有內容才存檔（<a href="#use-cases">use-cases.md</a>「session 管理」）。</p>
+<p><strong>US-10 自動化程式碼實驗</strong> — 身為工程師，我要 <code>/autoresearch</code> 讓模型自主迭代改 code 並以指標裁決，以便掛機做優化實驗。 驗收：每迭代 git checkpoint、guard／指標未過自動 <code>reset --hard</code> 還原、TSV journal 全程記錄（<a href="#modules-runtime">modules/runtime.md</a> 規則 3-7、9）。</p>
+<p><strong>US-11 腳本化整合</strong> — 身為要把 genie 接進 pipeline 的工程師，我要非 TTY／<code>--json</code> 時輸出機器可讀，以便下游程式解析。 驗收：非 TTY 或 <code>--json</code> 自動切 MachineSink（result→stdout、error→stderr、progress 靜默、confirm 不阻塞）（<a href="#class-diagram">class-diagram.md</a> 規則 13、實作細節）。</p>
+<h3>已知未覆蓋（誠實邊界）</h3>
+<ul><li>互動貼上模式的寫入型 SQL 仍可能先探測 MCP 可達性（v35 已知邊界，<a href="#flows-write-analysis">flows/write-analysis.md</a> 設計決策）。</li><li><code>--direct</code> 路徑不支援記憶體相關環境變數（<a href="#flows-trino-research-direct">flows/trino-research-direct.md</a> 實作細節）。</li><li>REPL 幫助文字的 metric 清單與兩路徑實際清單不一致（已記錄於 <a href="#flows-trino-research-mcp">flows/trino-research-mcp.md</a> 實作細節，待修）。</li></ul></section>
+<section id="architecture"><header class="sec-head"><span class="badge">architecture</span><h2>系統架構</h2><code class="src">docs/architecture.md</code></header><h3>目的與情境</h3>
 <p>GenieCLI 是以 LLM 輔助調校 Trino SQL 的命令列工具：整理 SQL 結構、EXPLAIN 計畫與執行證據後，請模型提出候選改寫，並以實測數據決定是否採納。使用者是資料工程師，在終端執行 <code>genie</code> 進入互動 REPL，或以檔案／stdin 一次性提問；主要產出為優化後的 SQL 與 markdown 研究報告（寫入 <code>report/</code> 目錄）。本文件描述模組分層與資料流，供修改功能時定位要動的 component。</p>
 <h3>圖</h3>
 <div class="diagram"><pre class="mermaid">graph TB
@@ -265,15 +286,16 @@ tr:last-child td { border-bottom:none; }
     TQ --&gt; OUTPUT
     MCP --&gt; OUTPUT</pre></div>
 <h3>模組職責表</h3>
-<div class='tablewrap'><table><thead><tr><th>模組</th><th>職責</th><th>關鍵進入點</th></tr></thead><tbody><tr><td><code>genie/cli.py</code></td><td>typer app；解析全域旗標、路由到 chat／one-shot／sessions／config／tools／doctor／setup</td><td><code>callback()</code><code class="cite">genie/cli.py:173</code>、<code>main()</code><code class="cite">genie/cli.py:447</code></td></tr><tr><td><code>genie/chat.py</code></td><td>互動 REPL：斜線命令分派（/trino-research、/trino、/autoresearch、session 管理）</td><td><code>_chat_loop()</code><code class="cite">genie/chat.py:422</code></td></tr><tr><td><code>genie/core/config.py</code></td><td>設定合併鏈：CLI 旗標 &gt; 環境變數 &gt; <code>~/.genie/config.toml</code> &gt; <code>~/ai-agent-config.json</code> &gt; 預設值</td><td><code>load()</code><code class="cite">genie/core/config.py:39</code></td></tr><tr><td><code>genie/core/registry.py</code></td><td>Skill 抽象與註冊表；<code>tier</code> 控制依模型能力載入</td><td><code>BaseSkill</code><code class="cite">genie/core/registry.py:14</code></td></tr><tr><td><code>genie/core/provider.py</code></td><td>LLM Provider 抽象（<code>CompletionRequest</code>／<code>Delta</code>／<code>ProviderCapabilities</code>）</td><td><code>Provider</code><code class="cite">genie/core/provider.py:31</code></td></tr><tr><td><code>genie/providers/*</code></td><td>三種 LLM 後端實作：內部 TGenie（multipart API）、OpenAI 相容（含 Ollama 原生偵測）、Anthropic</td><td><code>_make_provider()</code><code class="cite">genie/cli.py:62</code></td></tr><tr><td><code>genie/skills/trino_query</code></td><td><code>--direct</code> 研究管線：trino driver 直連、静態分析、stepwise 迭代</td><td><code>run_trino_research()</code><code class="cite">genie/skills/trino_query/research.py:2251</code></td></tr><tr><td><code>genie/skills/mcp_trino</code></td><td>MCP 研究管線、共用 preflight／診斷／write-analysis／等價驗證</td><td><code>run_trino_research_via_mcp()</code><code class="cite">genie/skills/mcp_trino/research.py:3765</code></td></tr><tr><td><code>genie/skills/oracle2trino</code></td><td>Oracle→Trino 轉換工具組（transpile／lookup／lint），註冊為 LLM tool</td><td><code>register()</code><code class="cite">genie/skills/oracle2trino/__init__.py:287</code></td></tr><tr><td><code>genie/session/manager.py</code></td><td>對話 JSON 存檔於 repo 根 <code>sessions/</code></td><td><code>save_session()</code><code class="cite">genie/session/manager.py:48</code></td></tr><tr><td><code>genie/output/</code></td><td>終端輸出（HumanSink）與機器輸出（MachineSink）、步驟軌跡 step_trace</td><td><code>HumanSink</code><code class="cite">genie/output/human.py:42</code></td></tr><tr><td><code>genie/runtime/</code></td><td>autoresearch 批次研究：檢查點、journal、run 管理</td><td><code>_run_autoresearch</code>（genie/runtime/autoresearch_cli.py）</td></tr></tbody></table></div>
+<div class="tablewrap"><table><thead><tr><th>模組</th><th>職責</th><th>關鍵進入點</th></tr></thead><tbody><tr><td><code>genie/cli.py</code></td><td>typer app；解析全域旗標、路由到 chat／one-shot／sessions／config／tools／doctor／setup</td><td><code>callback()</code><code class="cite">genie/cli.py:173</code>、<code>main()</code><code class="cite">genie/cli.py:447</code></td></tr><tr><td><code>genie/chat.py</code></td><td>互動 REPL：斜線命令分派（/trino-research、/trino、/autoresearch、session 管理）</td><td><code>_chat_loop()</code><code class="cite">genie/chat.py:422</code></td></tr><tr><td><code>genie/core/config.py</code></td><td>設定合併鏈：CLI 旗標 &gt; 環境變數 &gt; <code>~/.genie/config.toml</code> &gt; <code>~/ai-agent-config.json</code> &gt; 預設值</td><td><code>load()</code><code class="cite">genie/core/config.py:39</code></td></tr><tr><td><code>genie/core/registry.py</code></td><td>Skill 抽象與註冊表；<code>tier</code> 控制依模型能力載入</td><td><code>BaseSkill</code><code class="cite">genie/core/registry.py:14</code></td></tr><tr><td><code>genie/core/provider.py</code></td><td>LLM Provider 抽象（<code>CompletionRequest</code>／<code>Delta</code>／<code>ProviderCapabilities</code>）</td><td><code>Provider</code><code class="cite">genie/core/provider.py:31</code></td></tr><tr><td><code>genie/providers/*</code></td><td>三種 LLM 後端實作：內部 TGenie（multipart API）、OpenAI 相容（含 Ollama 原生偵測）、Anthropic</td><td><code>_make_provider()</code><code class="cite">genie/cli.py:62</code></td></tr><tr><td><code>genie/skills/trino_query</code></td><td><code>--direct</code> 研究管線：trino driver 直連、静態分析、stepwise 迭代</td><td><code>run_trino_research()</code><code class="cite">genie/skills/trino_query/research.py:2251</code></td></tr><tr><td><code>genie/skills/mcp_trino</code></td><td>MCP 研究管線、共用 preflight／診斷／write-analysis／等價驗證</td><td><code>run_trino_research_via_mcp()</code><code class="cite">genie/skills/mcp_trino/research.py:3765</code></td></tr><tr><td><code>genie/skills/oracle2trino</code></td><td>Oracle→Trino 轉換工具組（transpile／lookup／lint），註冊為 LLM tool</td><td><code>register()</code><code class="cite">genie/skills/oracle2trino/__init__.py:287</code></td></tr><tr><td><code>genie/session/manager.py</code></td><td>對話 JSON 存檔於 repo 根 <code>sessions/</code></td><td><code>save_session()</code><code class="cite">genie/session/manager.py:48</code></td></tr><tr><td><code>genie/output/</code></td><td>終端輸出（HumanSink）與機器輸出（MachineSink）、步驟軌跡 step_trace</td><td><code>HumanSink</code><code class="cite">genie/output/human.py:42</code></td></tr><tr><td><code>genie/runtime/</code></td><td>autoresearch 批次研究：檢查點、journal、run 管理</td><td><code>_run_autoresearch</code>（genie/runtime/autoresearch_cli.py）</td></tr></tbody></table></div>
 <h3>資料流敘事</h3>
 <p><strong>啟動流</strong>：<code>main()</code> 啟動 typer app<code class="cite">genie/cli.py:447</code>；<code>callback()</code> 依 TTY 與 <code>--json</code> 選擇 MachineSink 或 HumanSink<code class="cite">genie/cli.py:193-194</code>，載入設定<code class="cite">genie/cli.py:199</code>、以 <code>interface</code> 鍵選 provider<code class="cite">genie/cli.py:62-76</code>。有檔案引數或 stdin 非 TTY 時走 one-shot <code>_do_send</code><code class="cite">genie/cli.py:229-252</code>，否則進入 <code>_chat_loop</code><code class="cite">genie/cli.py:256-258</code>。</p>
 <p><strong>研究流（/trino-research）</strong>：chat 解析旗標後三向分派——<code>--file</code> 且為寫入型 SQL → 離線 write-analysis<code class="cite">genie/chat.py:914-917</code>；<code>--direct</code> → trino driver 直連管線<code class="cite">genie/chat.py:919-924</code>；否則探測 MCP 可達性後走 MCP 管線<code class="cite">genie/chat.py:925-943</code>。兩條研究管線共用 mcp_trino 的 preflight／診斷／等價驗證元件（雙路徑鏡像），量測結果驅動迭代，最終報告寫入 <code>report/</code><code class="cite">genie/skills/trino_query/research.py:2454-2462</code>。</p>
 <p><strong>LLM 呼叫流</strong>：管線組好 prompt 後以 <code>CompletionRequest</code> 呼叫 <code>provider.complete_text()</code>；TGenie 後端 401 時自動執行 <code>grab_auth.py</code> 刷新 token 後重試<code class="cite">genie/providers/tgenie.py:128-134</code>。</p>
 <h3>設計決策</h3>
-<ul><li>- <strong>雙路徑鏡像（direct／MCP）</strong>：direct 路徑刻意鏡像 MCP 路徑的診斷與 preflight 元件（genie/skills/mcp_trino 下的共用模組被 trino_query 引用），docstring 明言「Mirrors <code>trino_query.research.run_trino_research</code>」<code class="cite">genie/skills/mcp_trino/research.py:3785-3788</code>。</li><li>- <strong>路徑不偷換</strong>：MCP 不可達時明確報錯並建議 <code>--direct</code>，不悄悄改用直連（genie/chat.py:934-940；README「三個安全重點」）。</li><li>- <strong>playbook＋deterministic 分工</strong>：LLM 只負責診斷與改寫建議；量測、等價驗證、報告生成皆為確定性程式碼，失敗的候選不會取代基準 SQL（genie/skills/trino_query/research.py:1653 起 seed gate、報告 fail-closed 見 genie/skills/trino_query/research.py:2122-2134）。</li><li>- <strong>Provider 可抽換</strong>：內部 TGenie 為預設 interface<code class="cite">genie/core/config.py:24</code>，同一套管線可切 OpenAI 相容或 Anthropic<code class="cite">genie/cli.py:62-76</code>，供內外環境共用。</li></ul>
+<ul><li><strong>雙路徑鏡像（direct／MCP）</strong>：direct 路徑刻意鏡像 MCP 路徑的診斷與 preflight 元件（genie/skills/mcp_trino 下的共用模組被 trino_query 引用），docstring 明言「Mirrors <code>trino_query.research.run_trino_research</code>」<code class="cite">genie/skills/mcp_trino/research.py:3785-3788</code>。</li><li><strong>路徑不偷換</strong>：MCP 不可達時明確報錯並建議 <code>--direct</code>，不悄悄改用直連（genie/chat.py:934-940；README「三個安全重點」）。</li><li><strong>playbook＋deterministic 分工</strong>：LLM 只負責診斷與改寫建議；量測、等價驗證、報告生成皆為確定性程式碼，失敗的候選不會取代基準 SQL（genie/skills/trino_query/research.py:1653 起 seed gate、報告 fail-closed 見 genie/skills/trino_query/research.py:2122-2134）。</li><li><strong>Provider 可抽換</strong>：內部 TGenie 為預設 interface<code class="cite">genie/core/config.py:24</code>，同一套管線可切 OpenAI 相容或 Anthropic<code class="cite">genie/cli.py:62-76</code>，供內外環境共用。</li></ul>
 <h3>實作細節</h3>
-<ul><li>- 進入層合約（承接自 doc-layer 卡，已重驗）：<code>__main__.py</code> 只轉呼叫 <code>cli.main</code><code class="cite">genie/__main__.py:1</code>；chat.py 不得 import cli.py（<code>build_prompt</code> 以 callable 注入避免循環依賴，genie/chat.py:10）；chat 的 tool 迴圈每輪上限 <code>MAX_TOOL_LOOPS = 15</code><code class="cite">genie/chat.py:34</code>，相同 <code>(tool_name, sorted_args)</code> 在最近 20 個動作出現 ≥5 次觸發 loop-detection<code class="cite">genie/chat.py:141</code>。</li><li>- 秘密不外洩：<code>genie config</code> 的機器輸出完全排除 <code>authToken</code>／<code>openaiApiKey</code>／<code>cookies</code>；人類輸出遮罩為前 4 後 4<code class="cite">genie/cli.py:280</code>。</li><li>- <code>setup_wizard._write_toml</code> 把新 key merge 進既有 <code>~/.genie/config.toml</code> 而非整檔覆寫，精靈沒碰的 key 得以保留<code class="cite">genie/setup_wizard.py:57</code>。</li><li>- <code>genie verify</code> 是 <code>genie doctor</code> 的向後相容別名，無獨立邏輯<code class="cite">genie/cli.py:441</code>。</li><li>- 版本字串 <code>5.0.0</code><code class="cite">genie/cli.py:31</code>。</li><li>- 設定檔路徑：<code>~/.genie/config.toml</code>（新）、<code>~/ai-agent-config.json</code>（legacy）<code class="cite">genie/core/config.py:34-36</code>；MCP 另有 <code>~/.config/genie/mcp.json</code> 與 <code>[mcp.trino]</code> TOML 區段<code class="cite">genie/skills/mcp_trino/client.py:19-24</code>。</li><li>- 預設模型 <code>gemini-2.5-flash</code><code class="cite">genie/core/config.py:29</code>。</li><li>- Trino 直連 profile 存於 <code>~/.config/genie/trino.json</code>（README；<code>genie setup trino</code> 建立）。</li></ul></section><section id="class-diagram"><header class="sec-head"><span class="badge b-class">class</span><h2>核心類別圖</h2><code class="src">docs/class-diagram.md</code></header><h3>目的與情境</h3>
+<ul><li>進入層合約（承接自 doc-layer 卡，已重驗）：<code>__main__.py</code> 只轉呼叫 <code>cli.main</code><code class="cite">genie/__main__.py:1</code>；chat.py 不得 import cli.py（<code>build_prompt</code> 以 callable 注入避免循環依賴，genie/chat.py:10）；chat 的 tool 迴圈每輪上限 <code>MAX_TOOL_LOOPS = 15</code><code class="cite">genie/chat.py:34</code>，相同 <code>(tool_name, sorted_args)</code> 在最近 20 個動作出現 ≥5 次觸發 loop-detection<code class="cite">genie/chat.py:141</code>。</li><li>秘密不外洩：<code>genie config</code> 的機器輸出完全排除 <code>authToken</code>／<code>openaiApiKey</code>／<code>cookies</code>；人類輸出遮罩為前 4 後 4<code class="cite">genie/cli.py:280</code>。</li><li><code>setup_wizard._write_toml</code> 把新 key merge 進既有 <code>~/.genie/config.toml</code> 而非整檔覆寫，精靈沒碰的 key 得以保留<code class="cite">genie/setup_wizard.py:57</code>。</li><li><code>genie verify</code> 是 <code>genie doctor</code> 的向後相容別名，無獨立邏輯<code class="cite">genie/cli.py:441</code>。</li><li>版本字串 <code>5.0.0</code><code class="cite">genie/cli.py:31</code>。</li><li>設定檔路徑：<code>~/.genie/config.toml</code>（新）、<code>~/ai-agent-config.json</code>（legacy）<code class="cite">genie/core/config.py:34-36</code>；MCP 另有 <code>~/.config/genie/mcp.json</code> 與 <code>[mcp.trino]</code> TOML 區段<code class="cite">genie/skills/mcp_trino/client.py:19-24</code>。</li><li>預設模型 <code>gemini-2.5-flash</code><code class="cite">genie/core/config.py:29</code>。</li><li>Trino 直連 profile 存於 <code>~/.config/genie/trino.json</code>（README；<code>genie setup trino</code> 建立）。</li></ul></section>
+<section id="class-diagram"><header class="sec-head"><span class="badge">class</span><h2>核心類別圖</h2><code class="src">docs/class-diagram.md</code></header><h3>目的與情境</h3>
 <p>GenieCLI 的可抽換點都以類別／dataclass 表達：LLM 後端（Provider）、工具（BaseSkill）、MCP 連線（McpClient）、輸出（Sink）。改後端、加工具、換輸出格式時，先看這張圖決定要實作哪個介面。瑣碎 utility 與函式式模組（research 管線本身是函式）不入圖。</p>
 <h3>圖</h3>
 <div class="diagram"><pre class="mermaid">classDiagram
@@ -412,142 +434,12 @@ tr:last-child td { border-bottom:none; }
     }
     EvidenceCoverage o-- CoverageRow</pre></div>
 <h3>行為規則</h3>
-<ol class='rules' start='1'><li>Provider 三實作由 <code>_make_provider</code> 依 <code>cfg["interface"]</code> 選擇：<code>openai</code>→OpenAIProvider、<code>anthropic</code>→AnthropicProvider、其餘（含預設 <code>tgenie</code>）→TGenieProvider<code class="cite">genie/cli.py:62-76</code>。</li><li>TGenieProvider 收到 HTTP 401 時自動跑 <code>grab_auth.py</code> 刷新 token、reload config 後重試同一請求；刷新失敗才拋錯<code class="cite">genie/providers/tgenie.py:128-134</code>。</li><li>OpenAIProvider 偵測到 Ollama（base URL 含 <code>localhost:11434</code>／<code>127.0.0.1:11434</code>／<code>ollama</code>）且無附檔時改走原生 <code>/api/chat</code>（<code>think=false</code>、<code>num_ctx=8192</code>）——<code>/v1</code> 相容層不遵守 think=false<code class="cite">genie/providers/openai.py:59-68、82-91</code>。</li><li><code>BaseSkill.tier</code> 控制載入時機：<code>core</code> 一律載入、<code>extended</code> 中階以上模型、<code>full</code> 只給頂級模型<code class="cite">genie/core/registry.py:17-26</code>。</li><li><code>BaseSkill.run_tool</code> 先 <code>validate</code>（必填與 choices 檢查）再 <code>run</code>；TypeError 回報期望簽名、其他例外包成錯誤字串回傳，不讓工具例外炸掉對話<code class="cite">genie/core/registry.py:66-79</code>。</li><li><code>OptimizationDirection</code>、<code>CoverageRow</code>、<code>EvidenceCoverage</code> 皆為 frozen dataclass——診斷方向與證據覆蓋一經建立不可變（genie/skills/mcp_trino/pre_execution_diagnosis.py:118-126、genie/skills/mcp_trino/strategy_verify.py:83-108）。</li><li>session 不是類別而是 dict 契約：<code>new_session</code> 產生 <code>{id, created_at, title, filename, history, redo_stack}</code>，訊息由 <code>new_msg</code> 統一為 <code>{id, role, content[{type,text,reasonText}], timestamp}</code><code class="cite">genie/session/manager.py:17-45</code>。</li><li>SSE 解析（三 provider 共用）：<code>data: [DONE]</code> 與 <code>{"done": true}</code> 終止符都靜默跳過；content 累積為空時 fallback 到 reasoning tokens<code class="cite">genie/providers/base.py:13、24、47</code>。</li><li>AnthropicProvider 把 <code>system</code> role 從 messages 陣列抽出、提升為 payload 頂層 key（Anthropic API 格式要求）<code class="cite">genie/providers/anthropic.py:88</code>。</li><li>三個 provider 的 capabilities 都宣告 <code>tool_calls=False</code>——tool 呼叫是 genieCLI 自己在回覆文字裡解析的，不用 API 原生 tool calling<code class="cite">genie/providers/anthropic.py:37</code>。</li><li>TGenieProvider 無條件 <code>verify=False</code> 停用 SSL 驗證，並於模組載入時全域抑制 InsecureRequestWarning——內部自簽環境的刻意取捨<code class="cite">genie/providers/tgenie.py:120、12</code>。</li><li><code>_history_to_openai</code> 靜默丟棄 role 不在 user／assistant／system 的訊息<code class="cite">genie/providers/openai.py:30</code>。</li><li>MachineSink 契約：<code>result</code> 一律進 stdout、<code>error</code> 一律進 stderr、<code>progress</code> 是 no-op、<code>confirm</code> 恆回 True（非互動消費者永不阻塞）、<code>status</code> 是 nullcontext<code class="cite">genie/output/machine.py:17、25、13、31、57</code>。</li><li>HumanSink 共用單一 <code>Console(force_terminal=True)</code>；<code>status</code> spinner 由 daemon thread 每 0.5 秒更新經過秒數；表格 <code>box=None</code> 禁 ASCII 框線<code class="cite">genie/output/human.py:25、153、72</code>。</li><li>session 檔案存於 repo 根 <code>sessions/</code>（<code>SESSIONS_DIR</code> 以 <code>__file__</code> 相對推導，非 cwd 或 home）；<code>load_session</code> 會回填缺失的 <code>redo_stack</code>；<code>list_sessions</code> 只數 user role 訊息為 turns<code class="cite">genie/session/manager.py:10、60-61、76</code>。</li></ol>
+<ol class="rules" start="1"><li>Provider 三實作由 <code>_make_provider</code> 依 <code>cfg["interface"]</code> 選擇：<code>openai</code>→OpenAIProvider、<code>anthropic</code>→AnthropicProvider、其餘（含預設 <code>tgenie</code>）→TGenieProvider<code class="cite">genie/cli.py:62-76</code>。</li><li>TGenieProvider 收到 HTTP 401 時自動跑 <code>grab_auth.py</code> 刷新 token、reload config 後重試同一請求；刷新失敗才拋錯<code class="cite">genie/providers/tgenie.py:128-134</code>。</li><li>OpenAIProvider 偵測到 Ollama（base URL 含 <code>localhost:11434</code>／<code>127.0.0.1:11434</code>／<code>ollama</code>）且無附檔時改走原生 <code>/api/chat</code>（<code>think=false</code>、<code>num_ctx=8192</code>）——<code>/v1</code> 相容層不遵守 think=false<code class="cite">genie/providers/openai.py:59-68、82-91</code>。</li><li><code>BaseSkill.tier</code> 控制載入時機：<code>core</code> 一律載入、<code>extended</code> 中階以上模型、<code>full</code> 只給頂級模型<code class="cite">genie/core/registry.py:17-26</code>。</li><li><code>BaseSkill.run_tool</code> 先 <code>validate</code>（必填與 choices 檢查）再 <code>run</code>；TypeError 回報期望簽名、其他例外包成錯誤字串回傳，不讓工具例外炸掉對話<code class="cite">genie/core/registry.py:66-79</code>。</li><li><code>OptimizationDirection</code>、<code>CoverageRow</code>、<code>EvidenceCoverage</code> 皆為 frozen dataclass——診斷方向與證據覆蓋一經建立不可變（genie/skills/mcp_trino/pre_execution_diagnosis.py:118-126、genie/skills/mcp_trino/strategy_verify.py:83-108）。</li><li>session 不是類別而是 dict 契約：<code>new_session</code> 產生 <code>{id, created_at, title, filename, history, redo_stack}</code>，訊息由 <code>new_msg</code> 統一為 <code>{id, role, content[{type,text,reasonText}], timestamp}</code><code class="cite">genie/session/manager.py:17-45</code>。</li><li>SSE 解析（三 provider 共用）：<code>data: [DONE]</code> 與 <code>{"done": true}</code> 終止符都靜默跳過；content 累積為空時 fallback 到 reasoning tokens<code class="cite">genie/providers/base.py:13、24、47</code>。</li><li>AnthropicProvider 把 <code>system</code> role 從 messages 陣列抽出、提升為 payload 頂層 key（Anthropic API 格式要求）<code class="cite">genie/providers/anthropic.py:88</code>。</li><li>三個 provider 的 capabilities 都宣告 <code>tool_calls=False</code>——tool 呼叫是 genieCLI 自己在回覆文字裡解析的，不用 API 原生 tool calling<code class="cite">genie/providers/anthropic.py:37</code>。</li><li>TGenieProvider 無條件 <code>verify=False</code> 停用 SSL 驗證，並於模組載入時全域抑制 InsecureRequestWarning——內部自簽環境的刻意取捨<code class="cite">genie/providers/tgenie.py:120、12</code>。</li><li><code>_history_to_openai</code> 靜默丟棄 role 不在 user／assistant／system 的訊息<code class="cite">genie/providers/openai.py:30</code>。</li><li>MachineSink 契約：<code>result</code> 一律進 stdout、<code>error</code> 一律進 stderr、<code>progress</code> 是 no-op、<code>confirm</code> 恆回 True（非互動消費者永不阻塞）、<code>status</code> 是 nullcontext<code class="cite">genie/output/machine.py:17、25、13、31、57</code>。</li><li>HumanSink 共用單一 <code>Console(force_terminal=True)</code>；<code>status</code> spinner 由 daemon thread 每 0.5 秒更新經過秒數；表格 <code>box=None</code> 禁 ASCII 框線<code class="cite">genie/output/human.py:25、153、72</code>。</li><li>session 檔案存於 repo 根 <code>sessions/</code>（<code>SESSIONS_DIR</code> 以 <code>__file__</code> 相對推導，非 cwd 或 home）；<code>load_session</code> 會回填缺失的 <code>redo_stack</code>；<code>list_sessions</code> 只數 user role 訊息為 turns<code class="cite">genie/session/manager.py:10、60-61、76</code>。</li></ol>
 <h3>設計決策</h3>
-<ul><li>- <strong>Provider 以 duck-typing 介面而非強制繼承</strong>：三實作各自獨立，共同契約定義於 <code>genie/core/provider.py</code> 的 <code>Provider</code><code class="cite">genie/core/provider.py:31</code>；<code>complete</code> 皆以單次 <code>_call</code> 包成單一 Delta（非逐 token streaming）（genie/providers/tgenie.py:43-45、genie/providers/openai.py:52-54）。</li><li>- <strong>Skill 即 LLM tool</strong>：<code>spec()</code> 直接輸出 tool schema（name/description/args），<code>contribute_commands</code> hook 允許 skill 追加 Typer 子命令<code class="cite">genie/core/registry.py:45-64、81-82</code>。</li></ul>
+<ul><li><strong>Provider 以 duck-typing 介面而非強制繼承</strong>：三實作各自獨立，共同契約定義於 <code>genie/core/provider.py</code> 的 <code>Provider</code><code class="cite">genie/core/provider.py:31</code>；<code>complete</code> 皆以單次 <code>_call</code> 包成單一 Delta（非逐 token streaming）（genie/providers/tgenie.py:43-45、genie/providers/openai.py:52-54）。</li><li><strong>Skill 即 LLM tool</strong>：<code>spec()</code> 直接輸出 tool schema（name/description/args），<code>contribute_commands</code> hook 允許 skill 追加 Typer 子命令<code class="cite">genie/core/registry.py:45-64、81-82</code>。</li></ul>
 <h3>實作細節</h3>
-<ul><li>- HumanSink／MachineSink 選擇邏輯：<code>--json</code> 或非 TTY → MachineSink，互動 REPL 強制 HumanSink<code class="cite">genie/cli.py:193-194、254-255</code>。</li><li>- <code>McpTrinoSkill</code> 將 MCP server 工具橋接為 skill<code class="cite">genie/skills/mcp_trino/__init__.py:27</code>。</li></ul></section><section id="flow-direct"><header class="sec-head"><span class="badge b-sequence">sequence</span><h2>/trino-research --direct（trino driver 直連研究管線）</h2><code class="src">docs/flows/trino-research-direct.md</code></header><h3>目的與情境</h3>
-<p>使用者在 REPL 輸入 <code>/trino-research --direct --file q.sql --metric cpu_time_ms --iterations 5 --runs 3</code>，繞過 MCP、以 trino Python driver 直連叢集，對讀取型 SQL 做迭代優化。產出：終端摘要＋<code>report/trino-research-&lt;時間戳&gt;.md</code> 報告。觸發者：資料工程師（需先 <code>genie setup trino</code> 並安裝 trino 套件）。</p>
-<h3>圖</h3>
-<div class="diagram"><pre class="mermaid">sequenceDiagram
-    participant U as 使用者
-    participant CH as chat.py
-    participant R as trino_query/research.py
-    participant PF as mcp_trino/preflight.py
-    participant T as Trino cluster
-    participant L as LLM provider
-
-    U-&gt;&gt;CH: /trino-research --direct --file q.sql --metric cpu_time_ms
-    CH-&gt;&gt;CH: _parse_trino_research_args(args)
-    CH-&gt;&gt;R: run_trino_research(provider, cfg, model, reasoning, output, build_prompt, **kwargs)
-    R-&gt;&gt;R: classify_write_operation(sql)
-    Note over R: 回傳 None（讀取型）才繼續；否則轉 write-analysis
-    R-&gt;&gt;R: validate_safe_limit(safe_limit)
-    R-&gt;&gt;PF: run_preflight(sql, _direct_explain_runner)
-    PF-&gt;&gt;T: EXPLAIN (FORMAT JSON) {sql}
-    R-&gt;&gt;R: _run_optimization_loop(provider, model, reasoning, original_sql, metric_key, max_iterations, verify_runs, ...)
-    R-&gt;&gt;R: static_analyze(original_sql)
-    R-&gt;&gt;T: _measure_logical_sql(original_sql, metric_key, verify_runs, policy=policy, capture_rows=True)
-    R-&gt;&gt;PF: check_long_query_gate(baseline_wall_ms, max_iterations, long_query_opt_in, threshold_s, max_fallbacks)
-    R-&gt;&gt;PF: build_preflight_decision(diagnose_only, baseline_row_count, baseline_exc, gate, ...)
-    alt route 為 DIAGNOSE_ONLY／NO_DATA／REAL_FAILURE／LONG_QUERY_ABORT
-        R--&gt;&gt;U: 診斷報告或錯誤（不進迭代）
-    else route 為 PLAN_COST_LOOP
-        R-&gt;&gt;R: _run_plan_cost_loop(...)
-    else route 為 STANDARD_LOOP
-        R-&gt;&gt;L: _seed_decompose_and_select(original_sql, baseline, produce_fn, measure_fn, ...)
-        R-&gt;&gt;T: table_landscape_block(original_sql, _execute_direct_as_dicts)
-        R-&gt;&gt;T: stage_hotspot_block(query_id)
-        loop 每次迭代（1..max_iterations）
-            R-&gt;&gt;L: Step A 診斷＋Step B 策略＋Step C 改寫（iteration_pipeline）
-            R-&gt;&gt;T: _measure_logical_sql(candidate_sql, metric_key, verify_runs, ...)
-            R-&gt;&gt;R: 等價閘門（row multiset 比對）＋指標比較 → 採納或拒絕
-        end
-    end
-    R-&gt;&gt;R: _generate_report(result, metric, model, runs)
-    R--&gt;&gt;U: report/trino-research-&lt;時間戳&gt;.md</pre></div>
-<h3>行為規則</h3>
-<ol class='rules' start='1'><li>當 <code>--file</code> 的 SQL 被 <code>classify_write_operation</code> 判為寫入型時，系統會改走離線 write-analysis 並直接 return，不進優化迴圈<code class="cite">genie/skills/trino_query/research.py:2302-2309</code>。</li><li>當未給 <code>--metric</code>／<code>--iterations</code>／<code>--runs</code> 時，系統會互動詢問，預設值分別為 <code>cpu_time_ms</code>、5、3<code class="cite">genie/skills/trino_query/research.py:2314-2346</code>。</li><li>入口 preflight 一律以「原始 SQL」評估（非 safe-limit 包裝後的執行 SQL）；preflight 拒絕時整個 run 中止<code class="cite">genie/skills/trino_query/research.py:2366-2371</code>。</li><li>當 baseline 例外呈 table-not-found 形狀或 baseline 回傳 0 列時，系統走 no-data 路徑產出靜態報告，不做迭代<code class="cite">genie/skills/trino_query/research.py:1320-1324、1429-1441</code>。</li><li>當 baseline 牆鐘時間超過 long-query 門檻且使用者以 <code>--no-long-query</code> 拒絕長查詢時，系統產出 directed report 後停止，不再執行任何查詢<code class="cite">genie/skills/trino_query/research.py:1447-1465</code>。</li><li>候選查詢的 timeout 上限取 baseline 牆鐘時間（<code>make_candidate_timeout_ms(baseline_wall_ms)</code>），避免壞候選拖垮整個 run<code class="cite">genie/skills/trino_query/research.py:1376-1384</code>。</li><li>EXPLAIN 證據每個不同 SQL 只跑一次並快取（directions、plan skeleton、repeated-subtree 共用），取代先前每個改善迭代最多三次 planner 往返<code class="cite">genie/skills/trino_query/research.py:1514-1534</code>。</li><li>系統 prompt 強制候選「完全相同結果集、每迭代一個聚焦改動」，且 CTE 實體化只作建議、迴圈保持 read-only<code class="cite">genie/skills/trino_query/research.py:1583-1599</code>。</li><li>v48 seed decompose 預設開啟，<code>GENIE_V48_SEED_DECOMPOSE=0</code> 可關閉；fragment rewrite 為 opt-in（<code>GENIE_FRAGMENT_REWRITE=1</code>，上限 <code>GENIE_FRAGMENT_REWRITE_CAP</code> 預設 5）<code class="cite">genie/skills/trino_query/research.py:1606-1610</code>。</li><li>seed 勝者的 SQL 與量測值必須來自同一個 tuple arm（§3.1 NORMATIVE），被 seed gate 拒絕的記錄以 canonical failure record 寫入 history<code class="cite">genie/skills/trino_query/research.py:1649-1665</code>。</li><li>stepwise Step A/B/C 只在 <code>stepwise_enabled()</code> 且 provider 存在時啟用；其證據（QueryInfo 熱點、SHOW STATS 表況、repeated-subtree note）全部 fail-open——取不到就從 Step A prompt 省略<code class="cite">genie/skills/trino_query/research.py:1506-1508、1671-1711</code>。</li><li>baseline 的 QueryInfo 熱點必須在 run 結束後立刻抓取，因 coordinator 會將完成的查詢從記憶體歷史剔除（query.min-expire-age／query.max-history）<code class="cite">genie/skills/trino_query/research.py:1501-1512</code>。</li><li>頂層無 ORDER BY 時，等價閘門比對 row multiset 而非位置順序<code class="cite">genie/skills/trino_query/research.py:1683-1685</code>。</li><li>當 best_sql 偏離 original_sql 時，系統以零查詢成本（static＋EXPLAIN）重新診斷並快取（per-SQL），plan skeleton 一併更新<code class="cite">genie/skills/trino_query/research.py:1736-1760</code>。</li><li>報告的等價聲明 fail-closed：history 中存在 <code>equivalence_unverified_incomplete_result</code> 時，報告不得聲稱 full row-level equivalence，改標 unverified 與拒絕原因<code class="cite">genie/skills/trino_query/research.py:2122-2134、2141-2154</code>。</li><li>無任何改善時，報告仍輸出原始 SQL 並明言「No improvement kept」<code class="cite">genie/skills/trino_query/research.py:2220-2225</code>。</li><li>靜態分析 <code>analyze</code> 永不拋例外：SQL 只 parse 一次跑全部規則，單一規則失敗被靜默跳過（debug log）；規則固定 10 條、順序 r1–r10<code class="cite">genie/skills/trino_query/sql_static/__init__.py:90、131、62</code>。</li><li>直連執行層 <code>_try_execute</code> 永不拋例外（回傳含 error 欄位的 dict），且每次呼叫後關閉連線（genie/skills/trino_query/optimize.py:24、genie/skills/trino_query/research.py:125）。</li><li><code>structural_equivalent</code> 只比對計畫簽章、不執行查詢——供零成本判斷兩個 SQL 的 optimizer 計畫是否同構<code class="cite">genie/skills/trino_query/plan_signature.py:138</code>。</li></ol>
-<h4>路由決策狀態圖</h4>
-<div class="diagram"><pre class="mermaid">stateDiagram-v2
-    [*] --&gt; 靜態分析
-    靜態分析 --&gt; DIAGNOSE_ONLY : --diagnose-only
-    靜態分析 --&gt; 量測baseline
-    量測baseline --&gt; REAL_FAILURE : baseline 例外（非 no-data 形狀）
-    量測baseline --&gt; NO_DATA : table-not-found 或 0 列
-    量測baseline --&gt; LONG_QUERY_ABORT : 超過門檻且 --no-long-query
-    量測baseline --&gt; PLAN_COST_LOOP : EXPLAIN 成本估計可用
-    量測baseline --&gt; STANDARD_LOOP : 其餘
-    DIAGNOSE_ONLY --&gt; [*] : directed report
-    NO_DATA --&gt; [*] : 靜態報告
-    REAL_FAILURE --&gt; [*] : 錯誤
-    LONG_QUERY_ABORT --&gt; [*] : directed report
-    PLAN_COST_LOOP --&gt; [*] : 迭代＋報告
-    STANDARD_LOOP --&gt; [*] : 迭代＋報告</pre></div>
-<p>（路由由 <code>build_preflight_decision</code> 產生，六個 route 的消費區塊見 genie/skills/trino_query/research.py:1404-1495。）</p>
-<h3>設計決策</h3>
-<ul><li>- <strong>Direct 路徑鏡像 MCP 路徑</strong>：preflight、pre-execution 診斷、rule gate、seed decompose 皆 import 自 <code>mcp_trino</code> 共用模組（例如 genie/skills/trino_query/research.py:1328-1332、1552-1557、1625-1629），維持雙路徑行為對稱（設計標記「T-SYM」「dual-path parity」）。</li><li>- <strong>失敗候選不取代基準</strong>：接受條件由確定性程式碼裁決，非 LLM 自評（README「候選必須驗證」；seed gate 見 genie/skills/trino_query/research.py:1649-1662）。</li><li>- <strong>報告含 provenance</strong>：stepwise 啟用時報告記錄每迭代的 Step A 診斷與 Step B 策略、v48 step trace 附於報告尾<code class="cite">genie/skills/trino_query/research.py:2192-2199、2233-2242</code>。</li></ul>
-<h3>實作細節</h3>
-<ul><li>- 可選 metric：<code>cpu_time_ms</code>、<code>wall_time_ms</code>、<code>physical_input_bytes</code>、<code>processed_rows</code>、<code>total_splits</code>、<code>peak_memory_bytes</code><code class="cite">genie/skills/trino_query/research.py:2277</code>。</li><li>- 記憶體相關環境變數（<code>GENIE_TRINO_MEMORY_LIMIT_PER_NODE_BYTES</code>、<code>GENIE_TRINO_MEMORY_PRESSURE_FRACTION</code>）對 <code>--direct</code> 路徑無效<code class="cite">genie/chat.py:337</code>。</li><li>- 報告輸出目錄：cwd 下 <code>report/</code>，檔名 <code>trino-research-&lt;YYYYmmdd-HHMMSS&gt;.md</code>；diagnose 與 no-data 各有前綴 <code>trino-research-diagnose-</code>／<code>trino-research-nodata-</code><code class="cite">genie/skills/trino_query/research.py:2405-2427、2454-2462</code>。</li></ul></section><section id="flow-mcp"><header class="sec-head"><span class="badge b-sequence">sequence</span><h2>/trino-research（MCP 研究管線，預設路徑）</h2><code class="src">docs/flows/trino-research-mcp.md</code></header><h3>目的與情境</h3>
-<p>REPL 內不帶 <code>--direct</code> 的 <code>/trino-research</code>（例：<code>/trino-research --file q.sql --metric cpu_time_ms --iterations 5 --runs 3</code>）。SQL 的執行全部經由 MCP server（Streamable HTTP、JSON-RPC 2.0）轉發到 Trino，適合不允許 CLI 直連叢集的環境。優化迴圈機制與 direct 路徑相同（本文件只寫 MCP 特有段），差異在：連線層走 McpClient、入口多一段可達性探測、且候選出貨附 L1/L2/L3 證據覆蓋。</p>
-<h3>圖</h3>
-<div class="diagram"><pre class="mermaid">sequenceDiagram
-    participant U as 使用者
-    participant CH as chat.py
-    participant MR as mcp_trino/research.py
-    participant MC as McpClient
-    participant S as MCP server
-    participant L as LLM provider
-
-    U-&gt;&gt;CH: /trino-research --file q.sql --metric cpu_time_ms
-    CH-&gt;&gt;CH: _parse_trino_research_args(args)
-    CH-&gt;&gt;CH: _try_run_trino_write_analysis_from_file(...)
-    Note over CH: --file 為寫入型 SQL → 就地離線分析，不碰 MCP
-    CH-&gt;&gt;CH: load_mcp_config()
-    Note over CH: not enabled → 報錯「MCP not configured. Run: genie setup mcp」
-    CH-&gt;&gt;MC: McpClient(probe_cfg).list_tools()
-    Note over CH: probe timeout ＝ min(timeout, 3) 秒；不可達 → 報錯並建議 --direct
-    CH-&gt;&gt;MR: run_trino_research_via_mcp(provider, cfg, model, reasoning, output, build_prompt, **kwargs)
-    MR-&gt;&gt;MR: classify_write_operation(sql)
-    MR-&gt;&gt;MR: validate_safe_limit(safe_limit)
-    MR-&gt;&gt;MR: load_mcp_config()
-    MR-&gt;&gt;MC: McpClient(mcp_cfg)
-    MR-&gt;&gt;MC: client.list_tools()
-    MC-&gt;&gt;S: POST initialize（protocolVersion 2025-03-26）
-    MC-&gt;&gt;S: POST tools/list
-    loop 優化迴圈（機制同 direct 路徑）
-        MR-&gt;&gt;L: 診斷／策略／改寫
-        MR-&gt;&gt;MC: client.call_tool(name, arguments, timeout=...)
-        MC-&gt;&gt;S: POST tools/call
-        S--&gt;&gt;MC: content 陣列（text／resource）
-        MR-&gt;&gt;MR: 量測比較＋等價閘門＋L1/L2/L3 證據覆蓋
-    end
-    MR--&gt;&gt;U: 終端摘要＋report/ 報告</pre></div>
-<h3>行為規則</h3>
-<ol class='rules' start='1'><li><code>--file</code>／<code>sql_text</code> 提供的寫入型 SQL 在任何 MCP 設定與連線檢查之前就分類並轉離線 write-analysis，MCP 掛掉也能完成分析<code class="cite">genie/skills/mcp_trino/research.py:3794-3815</code>。</li><li>讀取型 SQL 的 <code>--safe-limit</code> 在 MCP 設定載入之前驗證，無效值直接拒絕，不浪費連線與 provider 工作<code class="cite">genie/skills/mcp_trino/research.py:3817-3820</code>。</li><li>MCP 未啟用（config <code>enabled=false</code> 或無 url）時，chat 層直接報錯提示 <code>genie setup mcp</code>，不進入研究函式<code class="cite">genie/chat.py:926-930</code>。</li><li>chat 層可達性探測使用 <code>min(設定 timeout, 3)</code> 秒的短 timeout，失敗時明確報錯並建議 <code>--direct</code>，絕不悄悄 fallback<code class="cite">genie/chat.py:931-940</code>。</li><li>研究工作負載會把 MCP timeout 拉高到 <code>max(設定值, query_timeout 或 RESEARCH_QUERY_TIMEOUT)</code>，避免長查詢被連線層切斷<code class="cite">genie/skills/mcp_trino/research.py:3827-3829</code>。</li><li>McpClient 首次請求前自動送 <code>initialize</code>（protocolVersion <code>2025-03-26</code>）與 <code>notifications/initialized</code>，並從回應 header 捕捉 <code>Mcp-Session-Id</code> 供後續請求<code class="cite">genie/skills/mcp_trino/client.py:190-209、153-156</code>。</li><li>回應 Content-Type 為 <code>text/event-stream</code> 時走 SSE 解析抽出 JSON-RPC result；JSON-RPC error 一律拋 <code>McpError</code><code class="cite">genie/skills/mcp_trino/client.py:158-170、172-188</code>。</li><li><code>call_tool</code> 把 MCP content 陣列攤平為字串：text 取文字、resource 與其他型別 JSON 序列化<code class="cite">genie/skills/mcp_trino/client.py:229-249</code>。</li><li>MCP 設定解析優先序：環境變數（<code>GENIE_MCP_TRINO_URL</code>／<code>GENIE_MCP_TRINO_ENABLED</code>）&gt; <code>~/.genie/config.toml</code> <code>[mcp.trino]</code> &gt; <code>~/.config/genie/mcp.json</code> &gt; 預設 <code>http://localhost:8811/mcp</code><code class="cite">genie/skills/mcp_trino/client.py:39-90</code>。</li><li>候選的證據覆蓋以 L1／L2／L3 三層記錄（<code>EvidenceCoverage</code>：每層 <code>CoverageRow(layer, status, reason)</code> 加總為 <code>ship_status</code>），資料結構凍結不可變<code class="cite">genie/skills/mcp_trino/strategy_verify.py:83-108</code>。</li><li>baseline 量測會計算計畫簽章（canonical 化後 sha256，剝除 row/byte 估計只留結構）與可選的 row_anchor（<code>SELECT count(*) FROM ({sql}) _anchor</code>），全程 never-raise<code class="cite">genie/skills/mcp_trino/trino_optimize.py:715-761</code>。</li><li><code>check_read_only</code> 以白名單擋 DML/DDL：只有 SELECT／WITH／EXPLAIN／SHOW／DESCRIBE／DESC 開頭的語句可進執行路徑<code class="cite">genie/skills/mcp_trino/preflight.py:17</code>。</li><li>MCP skills 只在 <code>config.enabled</code> 為 True 時註冊——MCP 關閉時模型看不到這批工具<code class="cite">genie/skills/mcp_trino/__init__.py:117</code>。</li><li>rule_gate 刻意不改寫 SQL、只分類訊號（模組 docstring 明言）；<code>trino_optimize</code> 的公開函式與 <code>read_cost</code> 全部 never-raise，一律退化為帶型別的 unavailable／unverified 結果（genie/skills/mcp_trino/rule_gate.py:3、trino_optimize.py:7、cost_reader.py:43）。</li></ol>
-<h3>設計決策</h3>
-<ul><li>- <strong>MCP 為預設、direct 為顯式逃生口</strong>：REPL 幫助文字與分派順序皆以 MCP 為第一路徑<code class="cite">genie/chat.py:919-943</code>，對應 README「啟用 MCP 時使用 MCP；MCP 不可達會明確失敗」。</li><li>- <strong>與 direct 共用一套函式簽名</strong>：<code>run_trino_research_via_mcp</code> docstring 明言鏡像 <code>trino_query.research.run_trino_research</code>，讓 chat.py 能以單一呼叫形狀分派<code class="cite">genie/skills/mcp_trino/research.py:3785-3788</code>。</li><li>- <strong>每節點記憶體上限可由環境變數覆寫</strong>：<code>GENIE_TRINO_MEMORY_LIMIT_PER_NODE_BYTES</code>（否則嘗試 SHOW SESSION，再 fallback 1 GiB）、壓力門檻 <code>GENIE_TRINO_MEMORY_PRESSURE_FRACTION</code> 預設 0.5——僅 MCP 路徑生效（genie/chat.py:328-337；門檻常數見 genie/skills/mcp_trino/pre_execution_diagnosis.py:43-44）。</li></ul>
-<h3>實作細節</h3>
-<ul><li>- MCP 路徑的 metric 清單比 direct 多一個 <code>query_time_ms</code>（MCP_METRICS 共 7 項，genie/skills/mcp_trino/research.py:3585-3589）；REPL 幫助文字的清單與兩條路徑皆不完全一致（genie/chat.py:301-302 列了 query_time_ms 但漏 peak_memory_bytes）。</li><li>- 傳輸層：requests.Session、header <code>Accept: application/json, text/event-stream</code><code class="cite">genie/skills/mcp_trino/client.py:121-125</code>。</li><li>- clientInfo 回報 <code>genieCLI/5.0.0</code><code class="cite">genie/skills/mcp_trino/client.py:196-200</code>。</li><li>- 預設 McpConfig：<code>url=http://localhost:8811/mcp</code>、<code>enabled=True</code>、<code>timeout=30</code><code class="cite">genie/skills/mcp_trino/client.py:27-32</code>。</li></ul></section><section id="flow-write"><header class="sec-head"><span class="badge b-sequence">sequence</span><h2>寫入型 SQL 離線分析（write-analysis）</h2><code class="src">docs/flows/write-analysis.md</code></header><h3>目的與情境</h3>
-<p><code>/trino-research --file write.sql</code> 的 SQL 含寫入或 DDL（INSERT／UPDATE／DELETE／CREATE／CTAS…）時，系統不執行、不 EXPLAIN、不 benchmark、不碰 MCP／Trino，只做離線 advisory 分析：靜態規則、零成本 directed 診斷、LLM 建議改寫與 decompose 建議，輸出報告供人工審閱。三個入口（chat 檔案分派、direct 路徑、MCP 路徑）共用同一函式，僅 <code>route</code> 標記不同。</p>
-<h3>圖</h3>
-<div class="diagram"><pre class="mermaid">sequenceDiagram
-    participant U as 使用者
-    participant E as 入口（chat.py／direct／MCP）
-    participant WA as write_analysis.py
-    participant L as LLM provider
-
-    U-&gt;&gt;E: /trino-research --file write.sql
-    E-&gt;&gt;WA: classify_write_operation(sql)
-    WA--&gt;&gt;E: WriteOperation（非 None＝寫入型）
-    E-&gt;&gt;WA: run_write_analysis_only(provider, cfg, model, reasoning, sql, output, build_prompt, sql_source=..., route=..., safe_limit=...)
-    WA-&gt;&gt;WA: extract_ctas_inner_select(sql)
-    Note over WA: CTAS 時改分析內層 SELECT，否則整句
-    WA-&gt;&gt;WA: static_analyze(inner_sql)
-    WA-&gt;&gt;WA: pre_execution_diagnosis(inner_sql, static_report, explain_cost=None, table_metadata=None, peak_memory_bytes=None)
-    WA-&gt;&gt;WA: build_rule_gate_summary(static_report, directions)
-    WA-&gt;&gt;WA: format_directions_report(directions, sql=inner_sql, reason=..., model=...)
-    WA-&gt;&gt;L: provider.complete_text(CompletionRequest(...advisory prompt...))
-    L--&gt;&gt;WA: llm_advice（含建議 SQL）
-    WA-&gt;&gt;L: _run_decompose_advisory(provider, model, reasoning, inner_sql, sql, ...)
-    WA-&gt;&gt;WA: render_write_analysis_report(result)
-    WA--&gt;&gt;U: report 檔案＋終端摘要</pre></div>
-<h3>行為規則</h3>
-<ol class='rules' start='1'><li>分類在原始 SQL 上進行；<code>classify_write_operation</code> 回傳 None（讀取型）時呼叫 <code>run_write_analysis_only</code> 會直接 <code>raise ValueError</code>——本流程只服務寫入型<code class="cite">genie/skills/mcp_trino/write_analysis.py:797-799</code>。</li><li>CTAS 語句剝掉 <code>CREATE TABLE ... AS</code> 外殼、只分析內層 SELECT；無法抽出時 fallback 整句<code class="cite">genie/skills/mcp_trino/write_analysis.py:801-806</code>。</li><li>directed 診斷與讀取型 <code>--diagnose-only</code> 共用同一條零成本管線，但所有叢集輸入（explain_cost／table_metadata／peak_memory_bytes）強制為 None，需要叢集的 contributor 自然退化為空；R1-R9 靜態與 SQL-shape 方向仍會產出並排序<code class="cite">genie/skills/mcp_trino/write_analysis.py:813-827</code>。</li><li>LLM advisory 為選配：provider 為 None 時跳過；呼叫失敗只記 <code>llm_error</code>，流程不中斷<code class="cite">genie/skills/mcp_trino/write_analysis.py:844-875</code>。</li><li>互動模式下 advisory LLM 呼叫包在 spinner（<code>output.status(...)</code>）中執行，避免 Ctrl-D 後長時間看似凍結；MachineSink 上 status 為 no-op<code class="cite">genie/skills/mcp_trino/write_analysis.py:864-871</code>。</li><li>v40 decompose advisory（逐 fragment 拆解→優化→欄位閘門→重組）同樣非執行、只呼叫 <code>provider.complete_text</code>，作用對象與診斷相同（CTAS 內層或整句）<code class="cite">genie/skills/mcp_trino/write_analysis.py:877-882</code>。</li><li>結果契約固定宣告 <code>executed: False</code>、<code>verified: False</code>、<code>advisory_only: True</code>、<code>live_dependencies_touched: False</code>——報告永不聲稱已驗證<code class="cite">genie/skills/mcp_trino/write_analysis.py:884-893</code>。</li><li>chat 檔案入口：讀檔失敗或空 SQL 直接報錯結束（回傳 True 表示已處理，不再往研究管線走）；SQL 為讀取型則回傳 False 交回一般分派<code class="cite">genie/chat.py:387-419</code>。</li></ol>
-<h3>設計決策</h3>
-<ul><li>- <strong>寫入型一律離線</strong>：對應 README 安全重點「寫入或 DDL 的 --file 輸入只做離線分析，不執行 SQL」；v35 已知邊界——互動 default MCP 貼上模式仍可能在取得貼上內容前先檢查 MCP 可達性（genie/chat.py:323-326 幫助文字明載）。</li><li>- <strong>與讀取型共用診斷元件</strong>：靜態規則與 directions 排序不重寫、只把叢集輸入設 None，維持單一真相來源（genie/skills/mcp_trino/write_analysis.py:813-818 註解）。</li></ul>
-<h3>實作細節</h3>
-<ul><li>- 報告先 render 一次、存檔取得路徑後把 <code>report_path</code> 塞回 result 再 render 一次寫入，確保報告內含自身路徑<code class="cite">genie/skills/mcp_trino/write_analysis.py:907-911</code>。</li><li>- result 記錄 <code>analysis_target</code>（<code>ctas_inner_select</code> 或 <code>whole_statement</code>）與 <code>analyzed_sql</code> 供報告區分<code class="cite">genie/skills/mcp_trino/write_analysis.py:897-898</code>。</li></ul></section><section id="mod-core"><header class="sec-head"><span class="badge b-class">class</span><h2>模組：genie/core（共用基礎層）</h2><code class="src">docs/modules/core.md</code></header><h3>目的與情境</h3>
+<ul><li>HumanSink／MachineSink 選擇邏輯：<code>--json</code> 或非 TTY → MachineSink，互動 REPL 強制 HumanSink<code class="cite">genie/cli.py:193-194、254-255</code>。</li><li><code>McpTrinoSkill</code> 將 MCP server 工具橋接為 skill<code class="cite">genie/skills/mcp_trino/__init__.py:27</code>。</li></ul></section>
+<section id="modules-core"><header class="sec-head"><span class="badge">class</span><h2>模組：genie/core（共用基礎層）</h2><code class="src">docs/modules/core.md</code></header><h3>目的與情境</h3>
 <p><code>genie/core</code> 是整個 CLI 的共用地基，五個關注點：LLM provider 抽象、skill 插件系統（BaseSkill／SkillRegistry／檔案系統探索）、context window 預算管理（ContextManager）、Trino SQL 靜態分析（lint 規則與工具）、設定載入（四層合併鏈）。所有 skill、CLI 命令、provider adapter 都依賴這裡的抽象，外部不得繞過。本文件承接原 doc-layer genie-core 卡的 invariants，已逐條對現行程式碼重驗。</p>
 <h3>圖</h3>
 <div class="diagram"><pre class="mermaid">classDiagram
@@ -590,11 +482,146 @@ tr:last-child td { border-bottom:none; }
     BaseSkill ..&gt; SkillContext
     ContextManager ..&gt; ModelProfile</pre></div>
 <h3>行為規則</h3>
-<ol class='rules' start='1'><li><code>SkillRegistry</code> 是 class-level dict 單例；測試之間必須呼叫 <code>clear()</code>，否則狀態跨測試洩漏<code class="cite">genie/core/registry.py:88</code>。</li><li><code>Provider</code> 是 <code>@runtime_checkable</code> Protocol 而非 ABC——實作者靠 duck-typing，不需繼承<code class="cite">genie/core/provider.py:30</code>。</li><li>設定解析順序固定：CLI 旗標 &gt; 環境變數（GENIE_*）&gt; <code>~/.genie/config.toml</code> &gt; <code>~/ai-agent-config.json</code> &gt; DEFAULTS<code class="cite">genie/core/config.py:4、39-62</code>。</li><li><code>ContextManager</code> 在歷史 token 達 context window 70% 時開始修剪（<code>_PRUNE_TRIGGER_RATIO = 0.70</code>）<code class="cite">genie/core/context_manager.py:18</code>。</li><li>單一 tool result 在進一步處理前硬截 3000 字元<code class="cite">genie/core/context_manager.py:19</code>。</li><li><code>prune_history</code> 永遠保留第一則（system）與最後 4 則訊息<code class="cite">genie/core/context_manager.py:71</code>。</li><li><code>BaseSkill.tier</code> 必須是 <code>core</code>／<code>extended</code>／<code>full</code> 之一；<code>tier</code> 決定依模型能力載入的範圍<code class="cite">genie/core/registry.py:26</code>。</li><li>Oracle 殘留 lint 規則從共用 pattern catalog 解析；catalog 缺項時 <code>raise LookupError</code>，不會靜默通過<code class="cite">genie/core/lint_rules.py:44</code>。</li><li>skill 探索要求目錄同時存在 <code>__init__.py</code> 與（<code>SKILL.md</code> 或 <code>skill.toml</code>）；只有 <code>__init__.py</code> 的目錄被靜默跳過<code class="cite">genie/core/registry.py:190</code>。</li><li><code>ModelProfile</code> 是 frozen dataclass——模型能力資料建立後不可變<code class="cite">genie/core/model_profiles.py:16</code>。</li></ol>
+<ol class="rules" start="1"><li><code>SkillRegistry</code> 是 class-level dict 單例；測試之間必須呼叫 <code>clear()</code>，否則狀態跨測試洩漏<code class="cite">genie/core/registry.py:88</code>。</li><li><code>Provider</code> 是 <code>@runtime_checkable</code> Protocol 而非 ABC——實作者靠 duck-typing，不需繼承<code class="cite">genie/core/provider.py:30</code>。</li><li>設定解析順序固定：CLI 旗標 &gt; 環境變數（GENIE_*）&gt; <code>~/.genie/config.toml</code> &gt; <code>~/ai-agent-config.json</code> &gt; DEFAULTS<code class="cite">genie/core/config.py:4、39-62</code>。</li><li><code>ContextManager</code> 在歷史 token 達 context window 70% 時開始修剪（<code>_PRUNE_TRIGGER_RATIO = 0.70</code>）<code class="cite">genie/core/context_manager.py:18</code>。</li><li>單一 tool result 在進一步處理前硬截 3000 字元<code class="cite">genie/core/context_manager.py:19</code>。</li><li><code>prune_history</code> 永遠保留第一則（system）與最後 4 則訊息<code class="cite">genie/core/context_manager.py:71</code>。</li><li><code>BaseSkill.tier</code> 必須是 <code>core</code>／<code>extended</code>／<code>full</code> 之一；<code>tier</code> 決定依模型能力載入的範圍<code class="cite">genie/core/registry.py:26</code>。</li><li>Oracle 殘留 lint 規則從共用 pattern catalog 解析；catalog 缺項時 <code>raise LookupError</code>，不會靜默通過<code class="cite">genie/core/lint_rules.py:44</code>。</li><li>skill 探索要求目錄同時存在 <code>__init__.py</code> 與（<code>SKILL.md</code> 或 <code>skill.toml</code>）；只有 <code>__init__.py</code> 的目錄被靜默跳過<code class="cite">genie/core/registry.py:190</code>。</li><li><code>ModelProfile</code> 是 frozen dataclass——模型能力資料建立後不可變<code class="cite">genie/core/model_profiles.py:16</code>。</li></ol>
 <h3>設計決策</h3>
-<ul><li>- <strong>五個關注點放同一 package 而非拆散</strong>：它們共同構成「所有上層都要 import 的最小地基」，避免上層彼此互相 import（chat.py 不 import cli.py 的鐵律靠 build_prompt 注入維持，genie/chat.py:10 模組 docstring）。</li><li>- <strong>lint 靜態分析放 core 而非 skills</strong>：oracle2trino 與 trino_query 兩個 skill package 都要用（genie/skills/oracle2trino/__init__.py:282 引用 core.lint_analyzer）。</li></ul>
+<ul><li><strong>五個關注點放同一 package 而非拆散</strong>：它們共同構成「所有上層都要 import 的最小地基」，避免上層彼此互相 import（chat.py 不 import cli.py 的鐵律靠 build_prompt 注入維持，genie/chat.py:10 模組 docstring）。</li><li><strong>lint 靜態分析放 core 而非 skills</strong>：oracle2trino 與 trino_query 兩個 skill package 都要用（genie/skills/oracle2trino/__init__.py:282 引用 core.lint_analyzer）。</li></ul>
 <h3>實作細節</h3>
-<ul><li>- context_manager 相關常數集中於檔頭：修剪觸發比例、tool result 截斷長度<code class="cite">genie/core/context_manager.py:18-19</code>。</li><li>- 預設 interface <code>tgenie</code>、預設模型 <code>gemini-2.5-flash</code><code class="cite">genie/core/config.py:24、29</code>。</li></ul></section><section id="mod-runtime"><header class="sec-head"><span class="badge b-sequence">sequence</span><h2>模組：genie/runtime（autoresearch 迭代引擎）</h2><code class="src">docs/modules/runtime.md</code></header><h3>目的與情境</h3>
+<ul><li>context_manager 相關常數集中於檔頭：修剪觸發比例、tool result 截斷長度<code class="cite">genie/core/context_manager.py:18-19</code>。</li><li>預設 interface <code>tgenie</code>、預設模型 <code>gemini-2.5-flash</code><code class="cite">genie/core/config.py:24、29</code>。</li></ul></section>
+<section id="flows-trino-research-direct"><header class="sec-head"><span class="badge">sequence</span><h2>/trino-research --direct（trino driver 直連研究管線）</h2><code class="src">docs/flows/trino-research-direct.md</code></header><h3>目的與情境</h3>
+<p>使用者在 REPL 輸入 <code>/trino-research --direct --file q.sql --metric cpu_time_ms --iterations 5 --runs 3</code>，繞過 MCP、以 trino Python driver 直連叢集，對讀取型 SQL 做迭代優化。產出：終端摘要＋<code>report/trino-research-&lt;時間戳&gt;.md</code> 報告。觸發者：資料工程師（需先 <code>genie setup trino</code> 並安裝 trino 套件）。</p>
+<h3>圖</h3>
+<div class="diagram"><pre class="mermaid">sequenceDiagram
+    participant U as 使用者
+    participant CH as chat.py
+    participant R as trino_query/research.py
+    participant PF as mcp_trino/preflight.py
+    participant T as Trino cluster
+    participant L as LLM provider
+
+    U-&gt;&gt;CH: /trino-research --direct --file q.sql --metric cpu_time_ms
+    CH-&gt;&gt;CH: _parse_trino_research_args(args)
+    CH-&gt;&gt;R: run_trino_research(provider, cfg, model, reasoning, output, build_prompt, **kwargs)
+    R-&gt;&gt;R: classify_write_operation(sql)
+    Note over R: 回傳 None（讀取型）才繼續；否則轉 write-analysis
+    R-&gt;&gt;R: validate_safe_limit(safe_limit)
+    R-&gt;&gt;PF: run_preflight(sql, _direct_explain_runner)
+    PF-&gt;&gt;T: EXPLAIN (FORMAT JSON) {sql}
+    R-&gt;&gt;R: _run_optimization_loop(provider, model, reasoning, original_sql, metric_key, max_iterations, verify_runs, ...)
+    R-&gt;&gt;R: static_analyze(original_sql)
+    R-&gt;&gt;T: _measure_logical_sql(original_sql, metric_key, verify_runs, policy=policy, capture_rows=True)
+    R-&gt;&gt;PF: check_long_query_gate(baseline_wall_ms, max_iterations, long_query_opt_in, threshold_s, max_fallbacks)
+    R-&gt;&gt;PF: build_preflight_decision(diagnose_only, baseline_row_count, baseline_exc, gate, ...)
+    alt route 為 DIAGNOSE_ONLY／NO_DATA／REAL_FAILURE／LONG_QUERY_ABORT
+        R--&gt;&gt;U: 診斷報告或錯誤（不進迭代）
+    else route 為 PLAN_COST_LOOP
+        R-&gt;&gt;R: _run_plan_cost_loop(...)
+    else route 為 STANDARD_LOOP
+        R-&gt;&gt;L: _seed_decompose_and_select(original_sql, baseline, produce_fn, measure_fn, ...)
+        R-&gt;&gt;T: table_landscape_block(original_sql, _execute_direct_as_dicts)
+        R-&gt;&gt;T: stage_hotspot_block(query_id)
+        loop 每次迭代（1..max_iterations）
+            R-&gt;&gt;L: Step A 診斷＋Step B 策略＋Step C 改寫（iteration_pipeline）
+            R-&gt;&gt;T: _measure_logical_sql(candidate_sql, metric_key, verify_runs, ...)
+            R-&gt;&gt;R: 等價閘門（row multiset 比對）＋指標比較 → 採納或拒絕
+        end
+    end
+    R-&gt;&gt;R: _generate_report(result, metric, model, runs)
+    R--&gt;&gt;U: report/trino-research-&lt;時間戳&gt;.md</pre></div>
+<h3>行為規則</h3>
+<ol class="rules" start="1"><li>當 <code>--file</code> 的 SQL 被 <code>classify_write_operation</code> 判為寫入型時，系統會改走離線 write-analysis 並直接 return，不進優化迴圈<code class="cite">genie/skills/trino_query/research.py:2302-2309</code>。</li><li>當未給 <code>--metric</code>／<code>--iterations</code>／<code>--runs</code> 時，系統會互動詢問，預設值分別為 <code>cpu_time_ms</code>、5、3<code class="cite">genie/skills/trino_query/research.py:2314-2346</code>。</li><li>入口 preflight 一律以「原始 SQL」評估（非 safe-limit 包裝後的執行 SQL）；preflight 拒絕時整個 run 中止<code class="cite">genie/skills/trino_query/research.py:2366-2371</code>。</li><li>當 baseline 例外呈 table-not-found 形狀或 baseline 回傳 0 列時，系統走 no-data 路徑產出靜態報告，不做迭代<code class="cite">genie/skills/trino_query/research.py:1320-1324、1429-1441</code>。</li><li>當 baseline 牆鐘時間超過 long-query 門檻且使用者以 <code>--no-long-query</code> 拒絕長查詢時，系統產出 directed report 後停止，不再執行任何查詢<code class="cite">genie/skills/trino_query/research.py:1447-1465</code>。</li><li>候選查詢的 timeout 上限取 baseline 牆鐘時間（<code>make_candidate_timeout_ms(baseline_wall_ms)</code>），避免壞候選拖垮整個 run<code class="cite">genie/skills/trino_query/research.py:1376-1384</code>。</li><li>EXPLAIN 證據每個不同 SQL 只跑一次並快取（directions、plan skeleton、repeated-subtree 共用），取代先前每個改善迭代最多三次 planner 往返<code class="cite">genie/skills/trino_query/research.py:1514-1534</code>。</li><li>系統 prompt 強制候選「完全相同結果集、每迭代一個聚焦改動」，且 CTE 實體化只作建議、迴圈保持 read-only<code class="cite">genie/skills/trino_query/research.py:1583-1599</code>。</li><li>v48 seed decompose 預設開啟，<code>GENIE_V48_SEED_DECOMPOSE=0</code> 可關閉；fragment rewrite 為 opt-in（<code>GENIE_FRAGMENT_REWRITE=1</code>，上限 <code>GENIE_FRAGMENT_REWRITE_CAP</code> 預設 5）<code class="cite">genie/skills/trino_query/research.py:1606-1610</code>。</li><li>seed 勝者的 SQL 與量測值必須來自同一個 tuple arm（§3.1 NORMATIVE），被 seed gate 拒絕的記錄以 canonical failure record 寫入 history<code class="cite">genie/skills/trino_query/research.py:1649-1665</code>。</li><li>stepwise Step A/B/C 只在 <code>stepwise_enabled()</code> 且 provider 存在時啟用；其證據（QueryInfo 熱點、SHOW STATS 表況、repeated-subtree note）全部 fail-open——取不到就從 Step A prompt 省略<code class="cite">genie/skills/trino_query/research.py:1506-1508、1671-1711</code>。</li><li>baseline 的 QueryInfo 熱點必須在 run 結束後立刻抓取，因 coordinator 會將完成的查詢從記憶體歷史剔除（query.min-expire-age／query.max-history）<code class="cite">genie/skills/trino_query/research.py:1501-1512</code>。</li><li>頂層無 ORDER BY 時，等價閘門比對 row multiset 而非位置順序<code class="cite">genie/skills/trino_query/research.py:1683-1685</code>。</li><li>當 best_sql 偏離 original_sql 時，系統以零查詢成本（static＋EXPLAIN）重新診斷並快取（per-SQL），plan skeleton 一併更新<code class="cite">genie/skills/trino_query/research.py:1736-1760</code>。</li><li>報告的等價聲明 fail-closed：history 中存在 <code>equivalence_unverified_incomplete_result</code> 時，報告不得聲稱 full row-level equivalence，改標 unverified 與拒絕原因<code class="cite">genie/skills/trino_query/research.py:2122-2134、2141-2154</code>。</li><li>無任何改善時，報告仍輸出原始 SQL 並明言「No improvement kept」<code class="cite">genie/skills/trino_query/research.py:2220-2225</code>。</li><li>靜態分析 <code>analyze</code> 永不拋例外：SQL 只 parse 一次跑全部規則，單一規則失敗被靜默跳過（debug log）；規則固定 10 條、順序 r1–r10<code class="cite">genie/skills/trino_query/sql_static/__init__.py:90、131、62</code>。</li><li>直連執行層 <code>_try_execute</code> 永不拋例外（回傳含 error 欄位的 dict），且每次呼叫後關閉連線（genie/skills/trino_query/optimize.py:24、genie/skills/trino_query/research.py:125）。</li><li><code>structural_equivalent</code> 只比對計畫簽章、不執行查詢——供零成本判斷兩個 SQL 的 optimizer 計畫是否同構<code class="cite">genie/skills/trino_query/plan_signature.py:138</code>。</li></ol>
+<h4>路由決策狀態圖</h4>
+<div class="diagram"><pre class="mermaid">stateDiagram-v2
+    [*] --&gt; 靜態分析
+    靜態分析 --&gt; DIAGNOSE_ONLY : --diagnose-only
+    靜態分析 --&gt; 量測baseline
+    量測baseline --&gt; REAL_FAILURE : baseline 例外（非 no-data 形狀）
+    量測baseline --&gt; NO_DATA : table-not-found 或 0 列
+    量測baseline --&gt; LONG_QUERY_ABORT : 超過門檻且 --no-long-query
+    量測baseline --&gt; PLAN_COST_LOOP : EXPLAIN 成本估計可用
+    量測baseline --&gt; STANDARD_LOOP : 其餘
+    DIAGNOSE_ONLY --&gt; [*] : directed report
+    NO_DATA --&gt; [*] : 靜態報告
+    REAL_FAILURE --&gt; [*] : 錯誤
+    LONG_QUERY_ABORT --&gt; [*] : directed report
+    PLAN_COST_LOOP --&gt; [*] : 迭代＋報告
+    STANDARD_LOOP --&gt; [*] : 迭代＋報告</pre></div>
+<p>（路由由 <code>build_preflight_decision</code> 產生，六個 route 的消費區塊見 genie/skills/trino_query/research.py:1404-1495。）</p>
+<h3>設計決策</h3>
+<ul><li><strong>Direct 路徑鏡像 MCP 路徑</strong>：preflight、pre-execution 診斷、rule gate、seed decompose 皆 import 自 <code>mcp_trino</code> 共用模組（例如 genie/skills/trino_query/research.py:1328-1332、1552-1557、1625-1629），維持雙路徑行為對稱（設計標記「T-SYM」「dual-path parity」）。</li><li><strong>失敗候選不取代基準</strong>：接受條件由確定性程式碼裁決，非 LLM 自評（README「候選必須驗證」；seed gate 見 genie/skills/trino_query/research.py:1649-1662）。</li><li><strong>報告含 provenance</strong>：stepwise 啟用時報告記錄每迭代的 Step A 診斷與 Step B 策略、v48 step trace 附於報告尾<code class="cite">genie/skills/trino_query/research.py:2192-2199、2233-2242</code>。</li></ul>
+<h3>實作細節</h3>
+<ul><li>可選 metric：<code>cpu_time_ms</code>、<code>wall_time_ms</code>、<code>physical_input_bytes</code>、<code>processed_rows</code>、<code>total_splits</code>、<code>peak_memory_bytes</code><code class="cite">genie/skills/trino_query/research.py:2277</code>。</li><li>記憶體相關環境變數（<code>GENIE_TRINO_MEMORY_LIMIT_PER_NODE_BYTES</code>、<code>GENIE_TRINO_MEMORY_PRESSURE_FRACTION</code>）對 <code>--direct</code> 路徑無效<code class="cite">genie/chat.py:337</code>。</li><li>報告輸出目錄：cwd 下 <code>report/</code>，檔名 <code>trino-research-&lt;YYYYmmdd-HHMMSS&gt;.md</code>；diagnose 與 no-data 各有前綴 <code>trino-research-diagnose-</code>／<code>trino-research-nodata-</code><code class="cite">genie/skills/trino_query/research.py:2405-2427、2454-2462</code>。</li></ul></section>
+<section id="flows-trino-research-mcp"><header class="sec-head"><span class="badge">sequence</span><h2>/trino-research（MCP 研究管線，預設路徑）</h2><code class="src">docs/flows/trino-research-mcp.md</code></header><h3>目的與情境</h3>
+<p>REPL 內不帶 <code>--direct</code> 的 <code>/trino-research</code>（例：<code>/trino-research --file q.sql --metric cpu_time_ms --iterations 5 --runs 3</code>）。SQL 的執行全部經由 MCP server（Streamable HTTP、JSON-RPC 2.0）轉發到 Trino，適合不允許 CLI 直連叢集的環境。優化迴圈機制與 direct 路徑相同（本文件只寫 MCP 特有段），差異在：連線層走 McpClient、入口多一段可達性探測、且候選出貨附 L1/L2/L3 證據覆蓋。</p>
+<h3>圖</h3>
+<div class="diagram"><pre class="mermaid">sequenceDiagram
+    participant U as 使用者
+    participant CH as chat.py
+    participant MR as mcp_trino/research.py
+    participant MC as McpClient
+    participant S as MCP server
+    participant L as LLM provider
+
+    U-&gt;&gt;CH: /trino-research --file q.sql --metric cpu_time_ms
+    CH-&gt;&gt;CH: _parse_trino_research_args(args)
+    CH-&gt;&gt;CH: _try_run_trino_write_analysis_from_file(...)
+    Note over CH: --file 為寫入型 SQL → 就地離線分析，不碰 MCP
+    CH-&gt;&gt;CH: load_mcp_config()
+    Note over CH: not enabled → 報錯「MCP not configured. Run: genie setup mcp」
+    CH-&gt;&gt;MC: McpClient(probe_cfg).list_tools()
+    Note over CH: probe timeout ＝ min(timeout, 3) 秒；不可達 → 報錯並建議 --direct
+    CH-&gt;&gt;MR: run_trino_research_via_mcp(provider, cfg, model, reasoning, output, build_prompt, **kwargs)
+    MR-&gt;&gt;MR: classify_write_operation(sql)
+    MR-&gt;&gt;MR: validate_safe_limit(safe_limit)
+    MR-&gt;&gt;MR: load_mcp_config()
+    MR-&gt;&gt;MC: McpClient(mcp_cfg)
+    MR-&gt;&gt;MC: client.list_tools()
+    MC-&gt;&gt;S: POST initialize（protocolVersion 2025-03-26）
+    MC-&gt;&gt;S: POST tools/list
+    loop 優化迴圈（機制同 direct 路徑）
+        MR-&gt;&gt;L: 診斷／策略／改寫
+        MR-&gt;&gt;MC: client.call_tool(name, arguments, timeout=...)
+        MC-&gt;&gt;S: POST tools/call
+        S--&gt;&gt;MC: content 陣列（text／resource）
+        MR-&gt;&gt;MR: 量測比較＋等價閘門＋L1/L2/L3 證據覆蓋
+    end
+    MR--&gt;&gt;U: 終端摘要＋report/ 報告</pre></div>
+<h3>行為規則</h3>
+<ol class="rules" start="1"><li><code>--file</code>／<code>sql_text</code> 提供的寫入型 SQL 在任何 MCP 設定與連線檢查之前就分類並轉離線 write-analysis，MCP 掛掉也能完成分析<code class="cite">genie/skills/mcp_trino/research.py:3794-3815</code>。</li><li>讀取型 SQL 的 <code>--safe-limit</code> 在 MCP 設定載入之前驗證，無效值直接拒絕，不浪費連線與 provider 工作<code class="cite">genie/skills/mcp_trino/research.py:3817-3820</code>。</li><li>MCP 未啟用（config <code>enabled=false</code> 或無 url）時，chat 層直接報錯提示 <code>genie setup mcp</code>，不進入研究函式<code class="cite">genie/chat.py:926-930</code>。</li><li>chat 層可達性探測使用 <code>min(設定 timeout, 3)</code> 秒的短 timeout，失敗時明確報錯並建議 <code>--direct</code>，絕不悄悄 fallback<code class="cite">genie/chat.py:931-940</code>。</li><li>研究工作負載會把 MCP timeout 拉高到 <code>max(設定值, query_timeout 或 RESEARCH_QUERY_TIMEOUT)</code>，避免長查詢被連線層切斷<code class="cite">genie/skills/mcp_trino/research.py:3827-3829</code>。</li><li>McpClient 首次請求前自動送 <code>initialize</code>（protocolVersion <code>2025-03-26</code>）與 <code>notifications/initialized</code>，並從回應 header 捕捉 <code>Mcp-Session-Id</code> 供後續請求<code class="cite">genie/skills/mcp_trino/client.py:190-209、153-156</code>。</li><li>回應 Content-Type 為 <code>text/event-stream</code> 時走 SSE 解析抽出 JSON-RPC result；JSON-RPC error 一律拋 <code>McpError</code><code class="cite">genie/skills/mcp_trino/client.py:158-170、172-188</code>。</li><li><code>call_tool</code> 把 MCP content 陣列攤平為字串：text 取文字、resource 與其他型別 JSON 序列化<code class="cite">genie/skills/mcp_trino/client.py:229-249</code>。</li><li>MCP 設定解析優先序：環境變數（<code>GENIE_MCP_TRINO_URL</code>／<code>GENIE_MCP_TRINO_ENABLED</code>）&gt; <code>~/.genie/config.toml</code> <code>[mcp.trino]</code> &gt; <code>~/.config/genie/mcp.json</code> &gt; 預設 <code>http://localhost:8811/mcp</code><code class="cite">genie/skills/mcp_trino/client.py:39-90</code>。</li><li>候選的證據覆蓋以 L1／L2／L3 三層記錄（<code>EvidenceCoverage</code>：每層 <code>CoverageRow(layer, status, reason)</code> 加總為 <code>ship_status</code>），資料結構凍結不可變<code class="cite">genie/skills/mcp_trino/strategy_verify.py:83-108</code>。</li><li>baseline 量測會計算計畫簽章（canonical 化後 sha256，剝除 row/byte 估計只留結構）與可選的 row_anchor（<code>SELECT count(*) FROM ({sql}) _anchor</code>），全程 never-raise<code class="cite">genie/skills/mcp_trino/trino_optimize.py:715-761</code>。</li><li><code>check_read_only</code> 以白名單擋 DML/DDL：只有 SELECT／WITH／EXPLAIN／SHOW／DESCRIBE／DESC 開頭的語句可進執行路徑<code class="cite">genie/skills/mcp_trino/preflight.py:17</code>。</li><li>MCP skills 只在 <code>config.enabled</code> 為 True 時註冊——MCP 關閉時模型看不到這批工具<code class="cite">genie/skills/mcp_trino/__init__.py:117</code>。</li><li>rule_gate 刻意不改寫 SQL、只分類訊號（模組 docstring 明言）；<code>trino_optimize</code> 的公開函式與 <code>read_cost</code> 全部 never-raise，一律退化為帶型別的 unavailable／unverified 結果（genie/skills/mcp_trino/rule_gate.py:3、trino_optimize.py:7、cost_reader.py:43）。</li></ol>
+<h3>設計決策</h3>
+<ul><li><strong>MCP 為預設、direct 為顯式逃生口</strong>：REPL 幫助文字與分派順序皆以 MCP 為第一路徑<code class="cite">genie/chat.py:919-943</code>，對應 README「啟用 MCP 時使用 MCP；MCP 不可達會明確失敗」。</li><li><strong>與 direct 共用一套函式簽名</strong>：<code>run_trino_research_via_mcp</code> docstring 明言鏡像 <code>trino_query.research.run_trino_research</code>，讓 chat.py 能以單一呼叫形狀分派<code class="cite">genie/skills/mcp_trino/research.py:3785-3788</code>。</li><li><strong>每節點記憶體上限可由環境變數覆寫</strong>：<code>GENIE_TRINO_MEMORY_LIMIT_PER_NODE_BYTES</code>（否則嘗試 SHOW SESSION，再 fallback 1 GiB）、壓力門檻 <code>GENIE_TRINO_MEMORY_PRESSURE_FRACTION</code> 預設 0.5——僅 MCP 路徑生效（genie/chat.py:328-337；門檻常數見 genie/skills/mcp_trino/pre_execution_diagnosis.py:43-44）。</li></ul>
+<h3>實作細節</h3>
+<ul><li>MCP 路徑的 metric 清單比 direct 多一個 <code>query_time_ms</code>（MCP_METRICS 共 7 項，genie/skills/mcp_trino/research.py:3585-3589）；REPL 幫助文字的清單與兩條路徑皆不完全一致（genie/chat.py:301-302 列了 query_time_ms 但漏 peak_memory_bytes）。</li><li>傳輸層：requests.Session、header <code>Accept: application/json, text/event-stream</code><code class="cite">genie/skills/mcp_trino/client.py:121-125</code>。</li><li>clientInfo 回報 <code>genieCLI/5.0.0</code><code class="cite">genie/skills/mcp_trino/client.py:196-200</code>。</li><li>預設 McpConfig：<code>url=http://localhost:8811/mcp</code>、<code>enabled=True</code>、<code>timeout=30</code><code class="cite">genie/skills/mcp_trino/client.py:27-32</code>。</li></ul></section>
+<section id="flows-write-analysis"><header class="sec-head"><span class="badge">sequence</span><h2>寫入型 SQL 離線分析（write-analysis）</h2><code class="src">docs/flows/write-analysis.md</code></header><h3>目的與情境</h3>
+<p><code>/trino-research --file write.sql</code> 的 SQL 含寫入或 DDL（INSERT／UPDATE／DELETE／CREATE／CTAS…）時，系統不執行、不 EXPLAIN、不 benchmark、不碰 MCP／Trino，只做離線 advisory 分析：靜態規則、零成本 directed 診斷、LLM 建議改寫與 decompose 建議，輸出報告供人工審閱。三個入口（chat 檔案分派、direct 路徑、MCP 路徑）共用同一函式，僅 <code>route</code> 標記不同。</p>
+<h3>圖</h3>
+<div class="diagram"><pre class="mermaid">sequenceDiagram
+    participant U as 使用者
+    participant E as 入口（chat.py／direct／MCP）
+    participant WA as write_analysis.py
+    participant L as LLM provider
+
+    U-&gt;&gt;E: /trino-research --file write.sql
+    E-&gt;&gt;WA: classify_write_operation(sql)
+    WA--&gt;&gt;E: WriteOperation（非 None＝寫入型）
+    E-&gt;&gt;WA: run_write_analysis_only(provider, cfg, model, reasoning, sql, output, build_prompt, sql_source=..., route=..., safe_limit=...)
+    WA-&gt;&gt;WA: extract_ctas_inner_select(sql)
+    Note over WA: CTAS 時改分析內層 SELECT，否則整句
+    WA-&gt;&gt;WA: static_analyze(inner_sql)
+    WA-&gt;&gt;WA: pre_execution_diagnosis(inner_sql, static_report, explain_cost=None, table_metadata=None, peak_memory_bytes=None)
+    WA-&gt;&gt;WA: build_rule_gate_summary(static_report, directions)
+    WA-&gt;&gt;WA: format_directions_report(directions, sql=inner_sql, reason=..., model=...)
+    WA-&gt;&gt;L: provider.complete_text(CompletionRequest(...advisory prompt...))
+    L--&gt;&gt;WA: llm_advice（含建議 SQL）
+    WA-&gt;&gt;L: _run_decompose_advisory(provider, model, reasoning, inner_sql, sql, ...)
+    WA-&gt;&gt;WA: render_write_analysis_report(result)
+    WA--&gt;&gt;U: report 檔案＋終端摘要</pre></div>
+<h3>行為規則</h3>
+<ol class="rules" start="1"><li>分類在原始 SQL 上進行；<code>classify_write_operation</code> 回傳 None（讀取型）時呼叫 <code>run_write_analysis_only</code> 會直接 <code>raise ValueError</code>——本流程只服務寫入型<code class="cite">genie/skills/mcp_trino/write_analysis.py:797-799</code>。</li><li>CTAS 語句剝掉 <code>CREATE TABLE ... AS</code> 外殼、只分析內層 SELECT；無法抽出時 fallback 整句<code class="cite">genie/skills/mcp_trino/write_analysis.py:801-806</code>。</li><li>directed 診斷與讀取型 <code>--diagnose-only</code> 共用同一條零成本管線，但所有叢集輸入（explain_cost／table_metadata／peak_memory_bytes）強制為 None，需要叢集的 contributor 自然退化為空；R1-R9 靜態與 SQL-shape 方向仍會產出並排序<code class="cite">genie/skills/mcp_trino/write_analysis.py:813-827</code>。</li><li>LLM advisory 為選配：provider 為 None 時跳過；呼叫失敗只記 <code>llm_error</code>，流程不中斷<code class="cite">genie/skills/mcp_trino/write_analysis.py:844-875</code>。</li><li>互動模式下 advisory LLM 呼叫包在 spinner（<code>output.status(...)</code>）中執行，避免 Ctrl-D 後長時間看似凍結；MachineSink 上 status 為 no-op<code class="cite">genie/skills/mcp_trino/write_analysis.py:864-871</code>。</li><li>v40 decompose advisory（逐 fragment 拆解→優化→欄位閘門→重組）同樣非執行、只呼叫 <code>provider.complete_text</code>，作用對象與診斷相同（CTAS 內層或整句）<code class="cite">genie/skills/mcp_trino/write_analysis.py:877-882</code>。</li><li>結果契約固定宣告 <code>executed: False</code>、<code>verified: False</code>、<code>advisory_only: True</code>、<code>live_dependencies_touched: False</code>——報告永不聲稱已驗證<code class="cite">genie/skills/mcp_trino/write_analysis.py:884-893</code>。</li><li>chat 檔案入口：讀檔失敗或空 SQL 直接報錯結束（回傳 True 表示已處理，不再往研究管線走）；SQL 為讀取型則回傳 False 交回一般分派<code class="cite">genie/chat.py:387-419</code>。</li></ol>
+<h3>設計決策</h3>
+<ul><li><strong>寫入型一律離線</strong>：對應 README 安全重點「寫入或 DDL 的 --file 輸入只做離線分析，不執行 SQL」；v35 已知邊界——互動 default MCP 貼上模式仍可能在取得貼上內容前先檢查 MCP 可達性（genie/chat.py:323-326 幫助文字明載）。</li><li><strong>與讀取型共用診斷元件</strong>：靜態規則與 directions 排序不重寫、只把叢集輸入設 None，維持單一真相來源（genie/skills/mcp_trino/write_analysis.py:813-818 註解）。</li></ul>
+<h3>實作細節</h3>
+<ul><li>報告先 render 一次、存檔取得路徑後把 <code>report_path</code> 塞回 result 再 render 一次寫入，確保報告內含自身路徑<code class="cite">genie/skills/mcp_trino/write_analysis.py:907-911</code>。</li><li>result 記錄 <code>analysis_target</code>（<code>ctas_inner_select</code> 或 <code>whole_statement</code>）與 <code>analyzed_sql</code> 供報告區分<code class="cite">genie/skills/mcp_trino/write_analysis.py:897-898</code>。</li></ul></section>
+<section id="modules-runtime"><header class="sec-head"><span class="badge">sequence</span><h2>模組：genie/runtime（autoresearch 迭代引擎）</h2><code class="src">docs/modules/runtime.md</code></header><h3>目的與情境</h3>
 <p><code>/autoresearch</code> 的執行引擎：使用者給定目標、驗證命令與方向後，LLM 每迭代提出一個假設並 patch 檔案，RunManager 以 git checkpoint 保護每一步——guard 或指標未改善就 <code>reset --hard</code> 還原，全程寫入 TSV journal。與 <code>/trino-research</code> 的差別：autoresearch 改的是<strong>檔案</strong>（任何 repo、任何指標），trino-research 改的是<strong>SQL</strong>。</p>
 <h3>圖</h3>
 <div class="diagram"><pre class="mermaid">sequenceDiagram
@@ -632,11 +659,12 @@ tr:last-child td { border-bottom:none; }
     end
     AC--&gt;&gt;U: manager.summary(state)＋journal 路徑</pre></div>
 <h3>行為規則</h3>
-<ol class='rules' start='1'><li>互動設定的預設值：scope <code>**/*.py</code>、direction <code>higher</code>、max iterations 10；goal 與 verify command 為必填，缺少直接結束<code class="cite">genie/runtime/autoresearch_cli.py:56-77</code>。</li><li>cwd 不是 git repo 時 <code>RunManager.start</code> 立即回傳 <code>status="failed"</code>，不做任何量測<code class="cite">genie/runtime/run_manager.py:85</code>。</li><li><code>checkpoint_create</code> 在現行分支上 <code>git add -A</code> ＋ <code>commit --allow-empty</code>，並在 commit 前記下 <code>original_head</code><code class="cite">genie/runtime/checkpoint.py:68-93</code>。</li><li><code>checkpoint_restore</code> 一律 <code>reset --hard</code> 回 <strong>original_head</strong>（checkpoint 前的狀態），不是 checkpoint commit 本身——還原等於整步作廢<code class="cite">genie/runtime/checkpoint.py:110</code>。</li><li>guard 失敗先還原再記錄結果；還原本身失敗則整個 run 標記 failed<code class="cite">genie/runtime/run_manager.py:180-225</code>。</li><li>verify command 非零退出一律 <code>success=False</code>，不管 stdout 內容<code class="cite">genie/runtime/metric.py:51</code>；metric 抽取先用 <code>metric_pattern</code> 的 capture group 1，否則取 stdout 最後一個浮點數，原始輸出截 2000 字元<code class="cite">genie/runtime/metric.py:49、63</code>。</li><li>只有 <code>improved</code> 會推進 <code>current_best</code> 並保留變更；same／worse／error 都還原<code class="cite">genie/runtime/run_manager.py:245-249</code>。</li><li><code>should_continue</code> 先看 status 非 <code>running</code> 即停，再檢查 <code>max_iterations</code><code class="cite">genie/runtime/run_manager.py:297</code>。</li><li><code>JournalWriter</code> 只在檔案不存在時寫 TSV header；每迭代 append 一列<code class="cite">genie/runtime/journal.py:27</code>。</li><li>LLM 未回 tool call 時提醒一次再重試；第二次仍無就跳過該迭代（不是中止 run）；patch 工具失敗也只是回饋給模型換方法<code class="cite">genie/runtime/autoresearch_cli.py:155-188</code>。</li><li>checkpoint label 中 <code>[a-zA-Z0-9_-]</code> 以外字元替換為底線，避免污染 git commit message<code class="cite">genie/runtime/checkpoint.py:35</code>。</li><li>Ctrl-C 中斷時 status 設為 <code>stopped</code>，仍輸出 summary 與 journal 路徑<code class="cite">genie/runtime/autoresearch_cli.py:212-218</code>。</li></ol>
+<ol class="rules" start="1"><li>互動設定的預設值：scope <code>**/*.py</code>、direction <code>higher</code>、max iterations 10；goal 與 verify command 為必填，缺少直接結束<code class="cite">genie/runtime/autoresearch_cli.py:56-77</code>。</li><li>cwd 不是 git repo 時 <code>RunManager.start</code> 立即回傳 <code>status="failed"</code>，不做任何量測<code class="cite">genie/runtime/run_manager.py:85</code>。</li><li><code>checkpoint_create</code> 在現行分支上 <code>git add -A</code> ＋ <code>commit --allow-empty</code>，並在 commit 前記下 <code>original_head</code><code class="cite">genie/runtime/checkpoint.py:68-93</code>。</li><li><code>checkpoint_restore</code> 一律 <code>reset --hard</code> 回 <strong>original_head</strong>（checkpoint 前的狀態），不是 checkpoint commit 本身——還原等於整步作廢<code class="cite">genie/runtime/checkpoint.py:110</code>。</li><li>guard 失敗先還原再記錄結果；還原本身失敗則整個 run 標記 failed<code class="cite">genie/runtime/run_manager.py:180-225</code>。</li><li>verify command 非零退出一律 <code>success=False</code>，不管 stdout 內容<code class="cite">genie/runtime/metric.py:51</code>；metric 抽取先用 <code>metric_pattern</code> 的 capture group 1，否則取 stdout 最後一個浮點數，原始輸出截 2000 字元<code class="cite">genie/runtime/metric.py:49、63</code>。</li><li>只有 <code>improved</code> 會推進 <code>current_best</code> 並保留變更；same／worse／error 都還原<code class="cite">genie/runtime/run_manager.py:245-249</code>。</li><li><code>should_continue</code> 先看 status 非 <code>running</code> 即停，再檢查 <code>max_iterations</code><code class="cite">genie/runtime/run_manager.py:297</code>。</li><li><code>JournalWriter</code> 只在檔案不存在時寫 TSV header；每迭代 append 一列<code class="cite">genie/runtime/journal.py:27</code>。</li><li>LLM 未回 tool call 時提醒一次再重試；第二次仍無就跳過該迭代（不是中止 run）；patch 工具失敗也只是回饋給模型換方法<code class="cite">genie/runtime/autoresearch_cli.py:155-188</code>。</li><li>checkpoint label 中 <code>[a-zA-Z0-9_-]</code> 以外字元替換為底線，避免污染 git commit message<code class="cite">genie/runtime/checkpoint.py:35</code>。</li><li>Ctrl-C 中斷時 status 設為 <code>stopped</code>，仍輸出 summary 與 journal 路徑<code class="cite">genie/runtime/autoresearch_cli.py:212-218</code>。</li></ol>
 <h3>設計決策</h3>
-<ul><li>- <strong>git 當還原機制而非自建 undo</strong>：每步一個 checkpoint commit，失敗 <code>reset --hard</code>；代價是 autoresearch 只能在 git repo 內跑（規則 2）、且會在使用者分支留下 checkpoint commits（genie/runtime/checkpoint.py:2-8 模組 docstring）。</li><li>- <strong>checkpoint／metric 函式回傳 dict 不拋例外</strong>：錯誤處理結構化（<code>{"error": ...}</code>），迴圈層決定要不要停<code class="cite">genie/runtime/checkpoint.py:7-8</code>。</li><li>- <strong>avoid circular import</strong>：autoresearch_cli 接收 <code>build_prompt</code> callable，不 import cli.py<code class="cite">genie/runtime/autoresearch_cli.py:4-6</code>。</li></ul>
+<ul><li><strong>git 當還原機制而非自建 undo</strong>：每步一個 checkpoint commit，失敗 <code>reset --hard</code>；代價是 autoresearch 只能在 git repo 內跑（規則 2）、且會在使用者分支留下 checkpoint commits（genie/runtime/checkpoint.py:2-8 模組 docstring）。</li><li><strong>checkpoint／metric 函式回傳 dict 不拋例外</strong>：錯誤處理結構化（<code>{"error": ...}</code>），迴圈層決定要不要停<code class="cite">genie/runtime/checkpoint.py:7-8</code>。</li><li><strong>avoid circular import</strong>：autoresearch_cli 接收 <code>build_prompt</code> callable，不 import cli.py<code class="cite">genie/runtime/autoresearch_cli.py:4-6</code>。</li></ul>
 <h3>實作細節</h3>
-<ul><li>- guard command 以 <code>shlex.split</code>＋<code>shell=False</code> 執行，timeout 120 秒<code class="cite">genie/runtime/run_manager.py:168-175</code>。</li><li>- system prompt 可由 <code>workflows/autoresearch.md</code>（WorkflowLoader）注入，失敗 fail-open 為空字串<code class="cite">genie/runtime/autoresearch_cli.py:88-93</code>。</li><li>- 每迭代餵給 LLM 的 context 含最近 5 條 git log<code class="cite">genie/runtime/autoresearch_cli.py:123-141</code>。</li></ul></section><section id="db-schema"><header class="sec-head"><span class="badge b-db-schema">db-schema</span><h2>DB Schema（e2e 測試環境）</h2><code class="src">docs/db-schema.md</code></header><h3>目的與情境</h3>
+<ul><li>guard command 以 <code>shlex.split</code>＋<code>shell=False</code> 執行，timeout 120 秒<code class="cite">genie/runtime/run_manager.py:168-175</code>。</li><li>system prompt 可由 <code>workflows/autoresearch.md</code>（WorkflowLoader）注入，失敗 fail-open 為空字串<code class="cite">genie/runtime/autoresearch_cli.py:88-93</code>。</li><li>每迭代餵給 LLM 的 context 含最近 5 條 git log<code class="cite">genie/runtime/autoresearch_cli.py:123-141</code>。</li></ul></section>
+<section id="db-schema"><header class="sec-head"><span class="badge">db-schema</span><h2>DB Schema（e2e 測試環境）</h2><code class="src">docs/db-schema.md</code></header><h3>目的與情境</h3>
 <p>GenieCLI 本身沒有應用程式資料庫；本文件描述的是 <code>infra/trino-stack</code> docker-compose 測試環境的種子資料表——e2e 與手動驗證時 <code>/trino-research</code>、oracle2trino linter 的操作對象。要重現測試環境時，先起 stack，再執行 <code>docker exec -it trino trino &lt; infra/trino-stack/init/create-tables.sql</code>。</p>
 <h3>圖</h3>
 <div class="diagram"><pre class="mermaid">erDiagram
@@ -661,11 +689,11 @@ tr:last-child td { border-bottom:none; }
         string dept_code
     }</pre></div>
 <h3>欄位語意表</h3>
-<div class='tablewrap'><table><thead><tr><th>表.欄位</th><th>商業意義</th></tr></thead><tbody><tr><td>employees.dept</td><td>部門代碼，同時是 Iceberg 分區鍵——設計來測分區過濾建議</td></tr><tr><td>employees.salary</td><td>薪資，提供聚合／排序類優化題材</td></tr><tr><td>orders.customer_id</td><td>下單客戶編號；環境中沒有 customers 表，是刻意留的懸空參照</td></tr><tr><td>orders.status</td><td>訂單狀態（completed／pending／cancelled），字串非 enum</td></tr><tr><td>orders.order_date</td><td>訂單日期，Iceberg 分區鍵——測日期分區與 join 場景</td></tr><tr><td>oracle_legacy.mgr_id</td><td>主管的 emp_id，自我參照階層——測 Oracle 式 (+) join／CONNECT BY 殘留偵測</td></tr><tr><td>oracle_legacy.dept_code</td><td>Oracle 風格部門代碼（D001…），與 employees.dept 語彙刻意不一致</td></tr></tbody></table></div>
+<div class="tablewrap"><table><thead><tr><th>表.欄位</th><th>商業意義</th></tr></thead><tbody><tr><td>employees.dept</td><td>部門代碼，同時是 Iceberg 分區鍵——設計來測分區過濾建議</td></tr><tr><td>employees.salary</td><td>薪資，提供聚合／排序類優化題材</td></tr><tr><td>orders.customer_id</td><td>下單客戶編號；環境中沒有 customers 表，是刻意留的懸空參照</td></tr><tr><td>orders.status</td><td>訂單狀態（completed／pending／cancelled），字串非 enum</td></tr><tr><td>orders.order_date</td><td>訂單日期，Iceberg 分區鍵——測日期分區與 join 場景</td></tr><tr><td>oracle_legacy.mgr_id</td><td>主管的 emp_id，自我參照階層——測 Oracle 式 (+) join／CONNECT BY 殘留偵測</td></tr><tr><td>oracle_legacy.dept_code</td><td>Oracle 風格部門代碼（D001…），與 employees.dept 語彙刻意不一致</td></tr></tbody></table></div>
 <h3>行為規則</h3>
-<ol class='rules' start='1'><li>兩張分區表的分區鍵：employees 以 <code>dept</code>、orders 以 <code>order_date</code>（<code>partitioning = ARRAY[...]</code>）<code class="cite">infra/trino-stack/init/create-tables.sql:12-22、37-47</code>。</li><li>所有表建立於 <code>iceberg.warehouse</code> schema、PARQUET 格式；DDL 使用 <code>IF NOT EXISTS</code>，重跑 init 腳本不會失敗<code class="cite">infra/trino-stack/init/create-tables.sql:8-22</code>。</li><li>無任何 PRIMARY KEY／FOREIGN KEY 約束（Iceberg connector 不支援）；參照完整性（如 orders.customer_id、oracle_legacy.mgr_id）僅存在於慣例<code class="cite">infra/trino-stack/init/create-tables.sql:12-64</code>。</li><li>另有 <code>memory.test.numbers</code>（CTAS：VALUES 1..5）供快速臨時測試，屬 memory catalog、重啟即消失<code class="cite">infra/trino-stack/init/create-tables.sql:73-77</code>。</li><li>腳本尾端以 UNION ALL 各表 COUNT(*) 自我驗證，種子列數：employees 10、orders 7、oracle_legacy 4、numbers 5<code class="cite">infra/trino-stack/init/create-tables.sql:24-34、49-56、66-70、80-85</code>。</li></ol>
+<ol class="rules" start="1"><li>兩張分區表的分區鍵：employees 以 <code>dept</code>、orders 以 <code>order_date</code>（<code>partitioning = ARRAY[...]</code>）<code class="cite">infra/trino-stack/init/create-tables.sql:12-22、37-47</code>。</li><li>所有表建立於 <code>iceberg.warehouse</code> schema、PARQUET 格式；DDL 使用 <code>IF NOT EXISTS</code>，重跑 init 腳本不會失敗<code class="cite">infra/trino-stack/init/create-tables.sql:8-22</code>。</li><li>無任何 PRIMARY KEY／FOREIGN KEY 約束（Iceberg connector 不支援）；參照完整性（如 orders.customer_id、oracle_legacy.mgr_id）僅存在於慣例<code class="cite">infra/trino-stack/init/create-tables.sql:12-64</code>。</li><li>另有 <code>memory.test.numbers</code>（CTAS：VALUES 1..5）供快速臨時測試，屬 memory catalog、重啟即消失<code class="cite">infra/trino-stack/init/create-tables.sql:73-77</code>。</li><li>腳本尾端以 UNION ALL 各表 COUNT(*) 自我驗證，種子列數：employees 10、orders 7、oracle_legacy 4、numbers 5<code class="cite">infra/trino-stack/init/create-tables.sql:24-34、49-56、66-70、80-85</code>。</li></ol>
 <h3>實作細節</h3>
-<ul><li>- Stack 定義：<code>infra/trino-stack/docker-compose.yml</code>；環境說明見 <code>infra/trino-stack/README.md</code>。</li><li>- oracle_legacy 的資料形狀（Boss→Manager→Worker 三層）刻意配合 linter 的階層查詢測試。</li><li>- erDiagram 只列 Iceberg 實體表；<code>memory.test.numbers</code> 為 CTAS 臨時表，記於行為規則不入圖。</li></ul></section>
+<ul><li>Stack 定義：<code>infra/trino-stack/docker-compose.yml</code>；環境說明見 <code>infra/trino-stack/README.md</code>。</li><li>oracle_legacy 的資料形狀（Boss→Manager→Worker 三層）刻意配合 linter 的階層查詢測試。</li><li>erDiagram 只列 Iceberg 實體表；<code>memory.test.numbers</code> 為 CTAS 臨時表，記於行為規則不入圖。</li></ul></section>
 </div></main>
 </div>
 <script type="module">
