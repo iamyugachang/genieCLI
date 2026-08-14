@@ -1,0 +1,62 @@
+# doc-align drift check — 複製到目標 repo 的 .github/workflows/doc-align.yml
+# 需求：secrets.ANTHROPIC_API_KEY；doc-align repo 若為 private 另需 secrets.DOC_ALIGN_TOKEN
+# 非阻塞設計：drift 只留言，不 fail job。
+name: doc-align
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+env:
+  DOC_ALIGN_REPO: iamyugachang/doc-align
+
+jobs:
+  doc-align:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Fetch doc-align
+        run: |
+          # private repo 時把 URL 換成 https://x-access-token:${{ secrets.DOC_ALIGN_TOKEN }}@github.com/${DOC_ALIGN_REPO}
+          git clone --depth 1 "https://github.com/${DOC_ALIGN_REPO}" "$RUNNER_TEMP/doc-align"
+      - name: Cheap gate (no LLM)
+        id: gate
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: node "$RUNNER_TEMP/doc-align/scripts/ci-gate.js" --base "origin/$BASE_REF"
+      - name: Mermaid lint on changed docs (no LLM)
+        if: steps.gate.outputs.changed_docs != ''
+        env:
+          CHANGED_DOCS: ${{ steps.gate.outputs.changed_docs }}
+        run: node "$RUNNER_TEMP/doc-align/scripts/mermaid-check.js" $CHANGED_DOCS
+      - name: Drift check (LLM)
+        if: steps.gate.outputs.skip != 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          RANGE: ${{ steps.gate.outputs.range }}
+        run: |
+          npm install -g @anthropic-ai/claude-code
+          claude -p --dangerously-skip-permissions \
+            "你是 doc-align 的執行 agent。讀取 $RUNNER_TEMP/doc-align/playbook/check.md 並完全遵循其步驟；<SCRIPTS> 為 $RUNNER_TEMP/doc-align/scripts；以 --range $RANGE 執行。輸出只包含 drift 報告本體（markdown），不要任何前後綴。" \
+            > "$RUNNER_TEMP/report.md"
+      - name: Upsert PR comment
+        if: steps.gate.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          MARKER="<!-- doc-align-report -->"
+          { echo "$MARKER"; echo; cat "$RUNNER_TEMP/report.md"; } > "$RUNNER_TEMP/comment.md"
+          CID=$(gh api --paginate "repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments" \
+            --jq ".[] | select(.body | startswith(\"$MARKER\")) | .id" | head -1)
+          if [ -n "$CID" ]; then
+            gh api -X PATCH "repos/${{ github.repository }}/issues/comments/$CID" -F body=@"$RUNNER_TEMP/comment.md"
+          else
+            gh api "repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments" -F body=@"$RUNNER_TEMP/comment.md"
+          fi

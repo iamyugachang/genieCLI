@@ -1,0 +1,83 @@
+# doc-align drift check — GitLab CI 範本（內部 OpenAI-compatible LLM）
+#
+# 安裝：複製到目標 repo 的 .gitlab/doc-align.yml，並在 .gitlab-ci.yml 加上：
+#   include:
+#     - local: '.gitlab/doc-align.yml'
+#
+# 於 GitLab CI/CD Variables（Settings → CI/CD → Variables，勾 Masked）設定：
+#   DOC_ALIGN_LLM_BASE_URL  — OpenAI-compatible endpoint（含 /v1，例 https://llm.internal/v1）
+#   DOC_ALIGN_LLM_API_KEY   — 該 endpoint 的 API key
+#   DOC_ALIGN_LLM_MODEL     — 模型名（照內部 gateway 的 model id）
+#   DOC_ALIGN_GITLAB_TOKEN  — 具 api scope 的 project access token（發 MR note 用；
+#                             CI_JOB_TOKEN 權限不足以建立 note）
+#   DOC_ALIGN_REPO_URL      — 選配：doc-align 的 clone URL；內網無法連 GitHub 時
+#                             指向內部鏡像（預設 https://github.com/iamyugachang/doc-align）
+#
+# 行為與 GitHub 版一致：MR 未觸及 watch 範圍零成本跳過；docs/ 有變更先跑零成本
+# Mermaid 語法檢查（語法錯誤 fail job——這是 lint，不是 drift 報告）；有觸及才跑
+# LLM check，以單一 MR note（upsert）回報 drift；**drift 永不 fail job**。
+
+doc-align:
+  stage: test
+  image: node:20
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  variables:
+    GIT_DEPTH: "0"
+  script:
+    - set -e
+    - export DOC_ALIGN_DIR="${CI_BUILDS_DIR}/doc-align-tool"
+    - git clone --depth 1 "${DOC_ALIGN_REPO_URL:-https://github.com/iamyugachang/doc-align}" "$DOC_ALIGN_DIR"
+    - git fetch origin "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
+    # ── Cheap gate（無 LLM）──
+    - node "$DOC_ALIGN_DIR/scripts/ci-gate.js" --base "origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" > gate.json
+    - cat gate.json
+    - SKIP=$(node -p "JSON.parse(require('fs').readFileSync('gate.json','utf8')).skip")
+    - RANGE=$(node -p "JSON.parse(require('fs').readFileSync('gate.json','utf8')).range")
+    - CHANGED_DOCS=$(node -p "JSON.parse(require('fs').readFileSync('gate.json','utf8')).changedDocs.join(' ')")
+    # ── Mermaid lint on changed docs（無 LLM；語法錯誤要 fail——lint 非 drift）──
+    - if [ -n "$CHANGED_DOCS" ]; then node "$DOC_ALIGN_DIR/scripts/mermaid-check.js" $CHANGED_DOCS; fi
+    - if [ "$SKIP" = "true" ]; then echo "doc-align: no watched scope touched — skip (zero LLM cost)"; exit 0; fi
+    # ── Drift check（LLM via opencode ＋ OpenAI-compatible provider）──
+    - curl -fsSL https://opencode.ai/install | bash
+    - export PATH="$HOME/.opencode/bin:$PATH"
+    - |
+      node -e '
+        const cfg = {
+          "$schema": "https://opencode.ai/config.json",
+          provider: {
+            internal: {
+              npm: "@ai-sdk/openai-compatible",
+              name: "Internal LLM",
+              options: {
+                baseURL: process.env.DOC_ALIGN_LLM_BASE_URL,
+                apiKey: process.env.DOC_ALIGN_LLM_API_KEY,
+              },
+              models: { [process.env.DOC_ALIGN_LLM_MODEL]: { name: process.env.DOC_ALIGN_LLM_MODEL } },
+            },
+          },
+          model: "internal/" + process.env.DOC_ALIGN_LLM_MODEL,
+        };
+        require("fs").writeFileSync("opencode.json", JSON.stringify(cfg, null, 2));
+      '
+    - |
+      opencode run \
+        "你是 doc-align 的執行 agent。讀取 $DOC_ALIGN_DIR/playbook/check.md 並完全遵循其步驟；<SCRIPTS> 為 $DOC_ALIGN_DIR/scripts；以 --range $RANGE 執行。輸出只包含 drift 報告本體（markdown），不要任何前後綴。" \
+        > report.md
+    - rm -f opencode.json
+    # ── Upsert MR note ──
+    - MARKER="<!-- doc-align-report -->"
+    - printf '%s\n\n' "$MARKER" > note.md
+    - cat report.md >> note.md
+    - NOTES_URL="$CI_API_V4_URL/projects/$CI_PROJECT_ID/merge_requests/$CI_MERGE_REQUEST_IID/notes"
+    - curl -fsS --header "PRIVATE-TOKEN: $DOC_ALIGN_GITLAB_TOKEN" "$NOTES_URL?per_page=100" > notes.json
+    - NOTE_ID=$(node -p "(JSON.parse(require('fs').readFileSync('notes.json','utf8')).find(n => n.body.startsWith('<!-- doc-align-report -->')) || {id:''}).id")
+    - |
+      if [ -n "$NOTE_ID" ]; then
+        curl -fsS -X PUT --header "PRIVATE-TOKEN: $DOC_ALIGN_GITLAB_TOKEN" \
+          --data-urlencode "body@note.md" "$NOTES_URL/$NOTE_ID" > /dev/null
+      else
+        curl -fsS -X POST --header "PRIVATE-TOKEN: $DOC_ALIGN_GITLAB_TOKEN" \
+          --data-urlencode "body@note.md" "$NOTES_URL" > /dev/null
+      fi
+    - echo "doc-align report posted to MR !$CI_MERGE_REQUEST_IID"
