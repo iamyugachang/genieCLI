@@ -1,5 +1,11 @@
 # doc-align drift check — GitLab CI 範本（內部 OpenAI-compatible LLM）
 #
+# 兩種 LLM runner，以 DOC_ALIGN_LLM_RUNNER 切換：
+#   direct（預設）— 不裝任何 agent，script 直接打 chat/completions（llm-check.js）；
+#                   只需 BASE_URL／API_KEY／MODEL，最適合內網。
+#   opencode      — 裝 opencode 跑完整 agent playbook（可自由探索 code），支援
+#                   BASE_URL 自建 gateway 或 PROVIDER 選公開 provider。
+#
 # 安裝：複製到目標 repo 的 .gitlab/doc-align.yml，並在 .gitlab-ci.yml 加上：
 #   include:
 #     - local: '.gitlab/doc-align.yml'
@@ -7,10 +13,11 @@
 # 於 GitLab CI/CD Variables（Settings → CI/CD → Variables，勾 Masked）設定：
 #   DOC_ALIGN_LLM_API_KEY   — 你選的 provider 的 API key（唯一 secret，中立命名）
 #   DOC_ALIGN_LLM_MODEL     — model id
-#   DOC_ALIGN_LLM_BASE_URL  — 自建 OpenAI-compatible endpoint（含 /v1，例
-#                             https://llm.internal/v1）；公司內部 gateway 走這個。
-#                             留空則改用 DOC_ALIGN_LLM_PROVIDER 指定 opencode 內建
+#   DOC_ALIGN_LLM_BASE_URL  — OpenAI-compatible endpoint（含 /v1，例
+#                             https://llm.internal/v1）；direct 模式必填。
+#                             opencode 模式留空則改用 DOC_ALIGN_LLM_PROVIDER 指定內建
 #                             provider（anthropic／openai／google／openrouter…）
+#   DOC_ALIGN_LLM_RUNNER    — 選配：direct（預設）或 opencode
 #   DOC_ALIGN_GITLAB_TOKEN  — 具 api scope 的 project access token（發 MR note 用；
 #                             CI_JOB_TOKEN 權限不足以建立 note）
 #   DOC_ALIGN_REPO_URL      — 選配：doc-align 的 clone URL；內網無法連 GitHub 時
@@ -41,10 +48,16 @@ doc-align:
     # ── Mermaid lint on changed docs（無 LLM；語法錯誤要 fail——lint 非 drift）──
     - if [ -n "$CHANGED_DOCS" ]; then node "$DOC_ALIGN_DIR/scripts/mermaid-check.js" $CHANGED_DOCS; fi
     - if [ "$SKIP" = "true" ]; then echo "doc-align: no watched scope touched — skip (zero LLM cost)"; exit 0; fi
-    # ── Drift check（LLM via opencode ＋ OpenAI-compatible provider）──
-    - curl -fsSL https://opencode.ai/install | bash
-    - export PATH="$HOME/.opencode/bin:$PATH"
+    # ── Drift check：direct（預設，無 agent）──
     - |
+      if [ "${DOC_ALIGN_LLM_RUNNER:-direct}" = "direct" ]; then
+        node "$DOC_ALIGN_DIR/scripts/llm-check.js" --range "$RANGE" --out report.md
+      fi
+    # ── Drift check：opencode（DOC_ALIGN_LLM_RUNNER=opencode 時）──
+    - |
+      if [ "${DOC_ALIGN_LLM_RUNNER:-direct}" = "opencode" ]; then
+      curl -fsSL https://opencode.ai/install | bash
+      export PATH="$HOME/.opencode/bin:$PATH"
       if [ -n "$DOC_ALIGN_LLM_BASE_URL" ]; then
         node -e '
           const cfg = {
@@ -72,11 +85,11 @@ doc-align:
         esac
         MODEL_FLAG="$DOC_ALIGN_LLM_PROVIDER/$DOC_ALIGN_LLM_MODEL"
       fi
-    - |
       opencode run -m "$MODEL_FLAG" \
         "你是 doc-align 的執行 agent。讀取 $DOC_ALIGN_DIR/playbook/check.md 並完全遵循其步驟；<SCRIPTS> 為 $DOC_ALIGN_DIR/scripts；以 --range $RANGE 執行。輸出只包含 drift 報告本體（markdown），不要任何前後綴。" \
         > report.md
-    - rm -f opencode.json
+      rm -f opencode.json
+      fi
     # ── Upsert MR note ──
     - MARKER="<!-- doc-align-report -->"
     - printf '%s\n\n' "$MARKER" > note.md

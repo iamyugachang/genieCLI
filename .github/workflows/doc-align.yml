@@ -1,7 +1,15 @@
-# doc-align drift check — 複製到目標 repo 的 .github/workflows/doc-align.yml
-# 需求：secrets.DOC_ALIGN_LLM_API_KEY（Anthropic key——本範本的 runner 是 claude CLI，
-# 固定走 Anthropic；要用其他家的 token 請改用 opencode 版範本）。
+# doc-align drift check — GitHub Actions 範本，direct 模式（不依賴 claude／opencode）
+# 複製到目標 repo 的 .github/workflows/doc-align.yml
+#
+# LLM 直接以 OpenAI-compatible chat/completions 呼叫（任何 gateway 皆可），設定：
+#   Secret   DOC_ALIGN_LLM_API_KEY  — 你選的 provider／gateway 的 API key（唯一 secret）
+#   Variable DOC_ALIGN_LLM_BASE_URL — endpoint（含 /v1；例 https://api.openai.com/v1、
+#                                     https://api.anthropic.com/v1、公司內部 gateway）
+#   Variable DOC_ALIGN_LLM_MODEL    — model id
 # doc-align repo 若為 private 另需 secrets.DOC_ALIGN_TOKEN
+#
+# 與 agent 版差異：LLM 只看 script 事先打包的內容（文件全文＋range 內相關 diff＋
+# 文件引用的證據片段），不會自己再去翻 code；PR range 有界，通常足夠。
 # 非阻塞設計：drift 只留言，不 fail job。
 name: doc-align
 on:
@@ -38,17 +46,14 @@ jobs:
         env:
           CHANGED_DOCS: ${{ steps.gate.outputs.changed_docs }}
         run: node "$RUNNER_TEMP/doc-align/scripts/mermaid-check.js" $CHANGED_DOCS
-      - name: Drift check (LLM)
+      - name: Drift check (direct LLM call)
         if: steps.gate.outputs.skip != 'true'
         env:
-          # claude CLI 認 ANTHROPIC_API_KEY 這個 env 名；repo secret 用中立名稱
-          ANTHROPIC_API_KEY: ${{ secrets.DOC_ALIGN_LLM_API_KEY }}
+          DOC_ALIGN_LLM_API_KEY: ${{ secrets.DOC_ALIGN_LLM_API_KEY }}
+          DOC_ALIGN_LLM_BASE_URL: ${{ vars.DOC_ALIGN_LLM_BASE_URL }}
+          DOC_ALIGN_LLM_MODEL: ${{ vars.DOC_ALIGN_LLM_MODEL }}
           RANGE: ${{ steps.gate.outputs.range }}
-        run: |
-          npm install -g @anthropic-ai/claude-code
-          claude -p --dangerously-skip-permissions \
-            "你是 doc-align 的執行 agent。讀取 $RUNNER_TEMP/doc-align/playbook/check.md 並完全遵循其步驟；<SCRIPTS> 為 $RUNNER_TEMP/doc-align/scripts；以 --range $RANGE 執行。輸出只包含 drift 報告本體（markdown），不要任何前後綴。" \
-            > "$RUNNER_TEMP/report.md"
+        run: node "$RUNNER_TEMP/doc-align/scripts/llm-check.js" --range "$RANGE" --out "$RUNNER_TEMP/report.md"
       - name: Upsert PR comment
         if: steps.gate.outputs.skip != 'true'
         env:
