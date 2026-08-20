@@ -1,0 +1,130 @@
+# doc-align nightly — GitHub Actions 範本：每天台灣午夜把選定 branch 的 handbook＋
+# drift 報告發佈到 GitHub Pages（自動 lane：Pages 是討論專案時的 single source of truth）
+#
+# 一個 repo 一個 Pages 站，但站內以子路徑分 branch：
+#   https://<user>.github.io/<repo>/<branch-slug>/          ← 各 branch 的 handbook
+#   https://<user>.github.io/<repo>/                        ← 索引頁（列出所有已發佈 branch＋drift 狀態）
+# 要發佈哪些 branch 由 Variable 白名單決定，不會每個 branch 都放。
+#
+# 複製到目標 repo 的 .github/workflows/doc-align-nightly.yml（**只有這個檔需要在
+# default branch 上**——文件集在哪條 branch 都行，不必 merge），並：
+#   1. repo Settings → Pages → Source 選 "GitHub Actions"
+#   2. Variable DOC_ALIGN_PAGES_REFS — 空白分隔的 branch 白名單
+#      （例 "main feat/trino-stepwise-iteration"；未設＝只發 default branch）
+#   3. Secret   DOC_ALIGN_LLM_API_KEY ＋ Variable DOC_ALIGN_LLM_BASE_URL／
+#      DOC_ALIGN_LLM_MODEL — 沒設也能跑：只發佈 handbook，drift 狀態顯示「未設定」
+#
+# 行為：
+#   - 每條 ref 各自跑 drift check（--incremental：各文件自 manifest 的 last_verified
+#     起算；drift 在有人跑 sync 裁決前每晚都會再出現，不會被「今天沒 commit」蓋掉）。
+#   - 手動觸發（workflow_dispatch）可選 mode=full：改用內建 agent loop 全量重驗
+#     （需 gateway 支援 OpenAI tool calling）。
+#   - 每條 ref 的產出：/<slug>/（handbook＋provenance＋drift chip＋報告全文）、
+#     /<slug>/drift-report.md、/<slug>/drift.json（shields.io endpoint badge，README 可貼
+#     https://img.shields.io/endpoint?url=<pages>/<slug>/drift.json）。
+#   - 沒有 docs/.docalign.yml 的 ref 會被跳過並列在索引頁註記，不會 fail。
+#   - drift 永不 fail job——drift 是資訊，不是門檻。
+name: doc-align-nightly
+on:
+  schedule:
+    - cron: '0 16 * * *'   # 16:00 UTC ＝ 台灣午夜 00:00
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: incremental（direct，預設）或 full（agent loop 全量重驗）
+        default: incremental
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: doc-align-nightly
+  cancel-in-progress: false
+
+env:
+  DOC_ALIGN_REPO: iamyugachang/doc-align
+
+jobs:
+  nightly:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Fetch doc-align
+        run: |
+          # private repo 時把 URL 換成 https://x-access-token:${{ secrets.DOC_ALIGN_TOKEN }}@github.com/${DOC_ALIGN_REPO}
+          git clone --depth 1 "https://github.com/${DOC_ALIGN_REPO}" "$RUNNER_TEMP/doc-align"
+      - name: Check refs and build Pages site
+        env:
+          DOC_ALIGN_LLM_API_KEY: ${{ secrets.DOC_ALIGN_LLM_API_KEY }}
+          DOC_ALIGN_LLM_BASE_URL: ${{ vars.DOC_ALIGN_LLM_BASE_URL }}
+          DOC_ALIGN_LLM_MODEL: ${{ vars.DOC_ALIGN_LLM_MODEL }}
+          REFS: ${{ vars.DOC_ALIGN_PAGES_REFS || github.event.repository.default_branch }}
+          MODE: ${{ inputs.mode || 'incremental' }}
+        run: |
+          set -e
+          TOOL="$RUNNER_TEMP/doc-align"
+          git fetch -q origin '+refs/heads/*:refs/remotes/origin/*'
+          mkdir -p public
+          INDEX_ROWS=""
+          for REF in $REFS; do
+            SLUG=$(echo "$REF" | tr '/' '-')
+            echo "=== $REF → /$SLUG/ ==="
+            git checkout -q "origin/$REF"
+            if [ ! -f docs/.docalign.yml ]; then
+              echo "skip: $REF 沒有 docs/.docalign.yml（尚未 doc-align init）"
+              INDEX_ROWS="$INDEX_ROWS<li><code>$REF</code> — 尚未 doc-align init，未發佈</li>"
+              continue
+            fi
+            mkdir -p "public/$SLUG"
+            REPORT="$RUNNER_TEMP/report-$SLUG.md"
+            if [ -z "$DOC_ALIGN_LLM_API_KEY" ]; then
+              echo "doc-align: LLM 憑證未設定，跳過 drift check（只發佈 handbook）"
+              rm -f "$REPORT"
+            elif [ "$MODE" = "full" ]; then
+              node "$TOOL/bin/doc-align.js" sync --dry-run --full --yes --quiet --out "$REPORT"
+            else
+              node "$TOOL/scripts/llm-check.js" --incremental --out "$REPORT"
+            fi
+            if [ -s "$REPORT" ]; then
+              node "$TOOL/scripts/render-handbook.js" --branch "$REF" --drift-report "$REPORT" --out "public/$SLUG/index.html"
+              cp "$REPORT" "public/$SLUG/drift-report.md"
+              if head -c 500 "$REPORT" | grep -q "無 drift"; then
+                printf '{"schemaVersion":1,"label":"docs drift","message":"ok","color":"brightgreen"}' > "public/$SLUG/drift.json"
+                STATUS="✅ 無 drift"
+              else
+                printf '{"schemaVersion":1,"label":"docs drift","message":"待裁決","color":"orange"}' > "public/$SLUG/drift.json"
+                STATUS="⚠️ 有 drift 待裁決"
+              fi
+            else
+              node "$TOOL/scripts/render-handbook.js" --branch "$REF" --out "public/$SLUG/index.html"
+              printf '{"schemaVersion":1,"label":"docs drift","message":"未設定","color":"lightgrey"}' > "public/$SLUG/drift.json"
+              STATUS="drift check 未設定"
+            fi
+            INDEX_ROWS="$INDEX_ROWS<li><a href=\"$SLUG/\"><code>$REF</code></a> — $STATUS</li>"
+          done
+          UPDATED=$(date -u '+%Y-%m-%d %H:%M UTC')
+          cat > public/index.html <<HTML
+          <!doctype html><html lang="zh-Hant"><head><meta charset="utf-8">
+          <title>${{ github.event.repository.name }} — doc-align handbooks</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <style>body{font-family:system-ui,sans-serif;max-width:640px;margin:3rem auto;padding:0 1rem;line-height:1.7}code{background:#eee;padding:1px 5px;border-radius:4px}</style>
+          </head><body><h1>${{ github.event.repository.name }} handbooks</h1>
+          <p>doc-align nightly 發佈的各 branch 文件集：</p><ul>$INDEX_ROWS</ul>
+          <p><small>更新於 $UPDATED</small></p></body></html>
+          HTML
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+      - id: deployment
+        uses: actions/deploy-pages@v4
